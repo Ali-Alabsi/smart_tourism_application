@@ -1,0 +1,557 @@
+import 'package:flutter/material.dart';
+import 'package:smart_tourism_application/core/theme/app_colors.dart';
+import 'package:smart_tourism_application/presentation/widgets/custom_app_bar.dart';
+import 'package:smart_tourism_application/presentation/controllers/hotels_controller.dart';
+import 'package:provider/provider.dart';
+import 'package:smart_tourism_application/core/entities/hotel.dart';
+import 'package:get_it/get_it.dart';
+
+class HotelListView extends StatelessWidget {
+  const HotelListView({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => HotelsController(GetIt.instance())..loadHotels(),
+      child: Consumer<HotelsController>(
+        builder: (context, controller, child) {
+          return Scaffold(
+            appBar: CustomAppBar(
+              title: 'Hotels',
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    // Handle notifications
+                  },
+                  icon: Icon(Icons.notifications),
+                ),
+              ],
+            ),
+            body: controller.isLoading
+                ? Center(child: CircularProgressIndicator())
+                : controller.errorMessage != null
+                    ? Center(child: Text('Error: ${controller.errorMessage}'))
+                    : RefreshIndicator(
+                        onRefresh: () async {
+                          await controller.loadHotels();
+                        },
+                        child: SingleChildScrollView(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Search Section
+                              _buildSearchSection(),
+                              
+                              // Filter Section
+                              _buildFilterSection(controller.hotels.length),
+                              
+                              // Hotel Listings
+                              _buildHotelListings(controller.hotels),
+                            ],
+                          ),
+                        ),
+                      ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSearchSection() {
+    return Container(
+      margin: EdgeInsets.all(16.0),
+      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search hotels...',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
+            ),
+          ),
+          Divider(),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Location',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, size: 16),
+                        SizedBox(width: 8),
+                        Text('Riyadh, Saudi Arabia'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                height: 40,
+                width: 1,
+                color: Colors.grey,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Rating',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        Icon(Icons.star, size: 16, color: Colors.amber),
+                        SizedBox(width: 8),
+                        Text('4.0+ Stars'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterSection(int hotelCount) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            '$hotelCount hotels found',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          Row(
+            children: [
+              Icon(Icons.filter_list),
+              SizedBox(width: 4),
+              Text('Filter'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHotelListings(List<Hotel> hotels) {
+    return Container(
+      margin: EdgeInsets.all(16.0),
+      child: Column(
+        children: hotels.map((hotel) {
+          return Column(
+            children: [
+              _HotelCard(hotel: hotel),
+              SizedBox(height: 16),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _HotelCard extends StatelessWidget {
+  final Hotel hotel;
+
+  const _HotelCard({required this.hotel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      elevation: 3,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 150,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(12.0)),
+              image: DecorationImage(
+                image: hotel.featuredImage.isNotEmpty 
+                    ? NetworkImage(hotel.featuredImage) 
+                    : AssetImage('assets/images/default_hotel.jpg') as ImageProvider,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(12.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        hotel.name,
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.star, size: 16, color: Colors.white),
+                          SizedBox(width: 4),
+                          Text(
+                            '${hotel.priceRange.min}-${hotel.priceRange.max} SAR',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.location_on, size: 16, color: Colors.grey),
+                    SizedBox(width: 4),
+                    Text(
+                      hotel.address,
+                      style: TextStyle(
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: hotel.services.map((service) {
+                    return Container(
+                      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[200],
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        service.name,
+                        style: TextStyle(
+                          fontSize: 12,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Avg. price per night',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                          ),
+                        ),
+                        Text(
+                          '\$${hotel.priceRange.min} To \$${hotel.priceRange.max}',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Navigate to hotel details
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => HotelDetailView(
+                              hotel: hotel,
+                            ),
+                          ),
+                        );
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      child: Text('View Details'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class HotelDetailView extends StatelessWidget {
+  final Hotel hotel;
+
+  const HotelDetailView({super.key, required this.hotel});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: CustomAppBar(
+        title: hotel.name,
+        actions: [
+          IconButton(
+            onPressed: () {
+              // Handle sharing
+            },
+            icon: Icon(Icons.share),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hotel Image
+            _buildHotelImage(),
+            
+            // Hotel Info
+            _buildHotelInfo(),
+            
+            // Features
+            _buildFeatures(),
+            
+            // Description
+            _buildDescription(),
+            
+            // Action Buttons
+            _buildActionButtons(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHotelImage() {
+    return Container(
+      height: 250,
+      decoration: BoxDecoration(
+        image: DecorationImage(
+          image: hotel.featuredImage.isNotEmpty 
+              ? NetworkImage(hotel.featuredImage) 
+              : AssetImage('assets/images/default_hotel.jpg') as ImageProvider,
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHotelInfo() {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  hotel.name,
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  '\$${hotel.priceRange.min}-${hotel.priceRange.max} per night',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Row(
+            children: [
+              Icon(Icons.location_on, color: AppColors.primary),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hotel.address,
+                  style: TextStyle(
+                    fontSize: 16,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeatures() {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Features & Services',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: hotel.services.map((service) {
+              return Chip(
+                label: Text(service.name),
+                avatar: Icon(Icons.check, color: AppColors.primary),
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescription() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'About this hotel',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Text(
+            hotel.details,
+            style: TextStyle(
+              fontSize: 16,
+              height: 1.5,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: OutlinedButton(
+              onPressed: () {
+                // Handle favorite
+              },
+              style: OutlinedButton.styleFrom(
+                padding: EdgeInsets.all(16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Icon(Icons.favorite_border, color: AppColors.primary),
+            ),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            flex: 2,
+            child: ElevatedButton(
+              onPressed: () {
+                // Handle booking
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Booking functionality would be implemented here'),
+                    backgroundColor: AppColors.primary,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                padding: EdgeInsets.all(16.0),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Book Now',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
