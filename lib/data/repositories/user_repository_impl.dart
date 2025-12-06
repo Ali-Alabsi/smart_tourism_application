@@ -64,9 +64,57 @@ class UserRepositoryImpl implements IUserRepository {
     required String userId,
     required User user,
   }) async {
-    // In a real implementation, this would call an API to update the user profile
-    // For now, we'll just return the user as is
-    return user;
+    try {
+      final updatedUserModel = await _authApi.updateProfile(
+        fullName: user.name,
+        email: user.email,
+        phoneNumber: user.phoneNumber,
+      );
+
+      // Update local stored user data
+      await _sharedPrefs.setString('userId', updatedUserModel.id);
+      await _sharedPrefs.setString('userName', updatedUserModel.name);
+      await _sharedPrefs.setString('userEmail', updatedUserModel.email);
+      await _sharedPrefs.setString('userPhoneNumber', updatedUserModel.phoneNumber);
+
+      return updatedUserModel;
+    } catch (e) {
+      throw Exception('Failed to update profile: $e');
+    }
+  }
+
+  @override
+  Future<User> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    try {
+      final updatedUserModel = await _authApi.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        newPasswordConfirmation: newPasswordConfirmation,
+      );
+
+      // Optionally update local stored user data
+      await _sharedPrefs.setString('userId', updatedUserModel.id);
+      await _sharedPrefs.setString('userName', updatedUserModel.name);
+      await _sharedPrefs.setString('userEmail', updatedUserModel.email);
+      await _sharedPrefs.setString('userPhoneNumber', updatedUserModel.phoneNumber);
+
+      return updatedUserModel;
+    } catch (e) {
+      throw Exception('Failed to change password: $e');
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(String email) async {
+    try {
+      await _authApi.forgotPassword(email);
+    } catch (e) {
+      throw Exception('Failed to send password reset email: $e');
+    }
   }
 
   @override

@@ -5,6 +5,9 @@ import 'package:smart_tourism_application/presentation/controllers/activities_co
 import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/activity.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dart';
+import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class ActivitiesListView extends StatelessWidget {
   const ActivitiesListView({super.key});
@@ -710,14 +713,37 @@ class EventDetailView extends StatelessWidget {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle booking
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Booking functionality would be implemented here'),
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
+              onPressed: () async {
+                final url = event['url'] as String?;
+                if (url != null && url.isNotEmpty) {
+                  try {
+                    final uri = Uri.parse(url);
+                    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                      // Successfully launched
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open booking link'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not open booking link: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No booking link available for this event'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
@@ -764,6 +790,25 @@ class ActivityDetailView extends StatelessWidget {
               actions: [
                 IconButton(
                   onPressed: () {
+                    if (controller.selectedActivity != null) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ChangeNotifierProvider.value(
+                          value: Provider.of<RatingsController>(context, listen: false),
+                          child: RatingDialog(
+                            typeId: controller.selectedActivity!.id,
+                            type: 'activities',
+                            itemName: controller.selectedActivity!.name,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.star_border),
+                  tooltip: 'Rate this activity',
+                ),
+                IconButton(
+                  onPressed: () {
                     // Handle sharing
                   },
                   icon: Icon(Icons.share),
@@ -792,7 +837,7 @@ class ActivityDetailView extends StatelessWidget {
                                 _buildReviews(),
                                 
                                 // Action Buttons
-                                _buildActionButtons(context),
+                                _buildActionButtons(context, controller.selectedActivity!),
                               ],
                             ),
                           )
@@ -994,7 +1039,7 @@ class ActivityDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, Activity activity) {
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Row(
@@ -1017,14 +1062,36 @@ class ActivityDetailView extends StatelessWidget {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle booking
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Booking functionality would be implemented here'),
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
+              onPressed: () async {
+                if (activity.url != null && activity.url!.isNotEmpty) {
+                  try {
+                    final uri = Uri.parse(activity.url!);
+                    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                      // Successfully launched
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open booking link'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not open booking link: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No booking link available for this activity'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

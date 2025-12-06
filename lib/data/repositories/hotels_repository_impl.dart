@@ -15,4 +15,13 @@ class HotelsRepositoryImpl implements IHotelsRepository {
       throw Exception('Failed to get hotels: $e');
     }
   }
+
+  @override
+  Future<Hotel> getHotelById(int id) async {
+    try {
+      return await _hotelsApi.getHotelById(id);
+    } catch (e) {
+      throw Exception('Failed to get hotel: $e');
+    }
+  }
 }

@@ -5,6 +5,9 @@ import 'package:smart_tourism_application/presentation/controllers/restaurants_c
 import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/restaurant.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dart';
+import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class RestaurantListView extends StatelessWidget {
   const RestaurantListView({super.key});
@@ -198,6 +201,7 @@ class _RestaurantCard extends StatelessWidget {
         children: [
           Container(
             height: 150,
+            width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.vertical(top: Radius.circular(12.0)),
               color: AppColors.primary.withOpacity(0.1),
@@ -301,29 +305,334 @@ class _RestaurantCard extends StatelessWidget {
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () {
-                        // Navigate to restaurant details
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Restaurant details would be shown here'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Row(
+                      children: [
+                        IconButton(
+                          onPressed: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) => ChangeNotifierProvider.value(
+                                value: Provider.of<RatingsController>(context, listen: false),
+                                child: RatingDialog(
+                                  typeId: restaurant.id,
+                                  type: 'restaurant',
+                                  itemName: restaurant.name,
+                                ),
+                              ),
+                            );
+                          },
+                          icon: Icon(Icons.star_border),
+                          color: AppColors.primary,
+                          tooltip: 'Rate this restaurant',
                         ),
-                      ),
-                      child: Text('View Menu'),
+                        ElevatedButton(
+                          onPressed: () async {
+                            if (restaurant.url != null && restaurant.url!.isNotEmpty) {
+                              try {
+                                final uri = Uri.parse(restaurant.url!);
+                                if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                                  // Successfully launched
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text('Could not open booking link'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Could not open booking link: ${e.toString()}'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('No booking link available for this restaurant'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                            }
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primary,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text('Book Now'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class RestaurantDetailView extends StatelessWidget {
+  final int restaurantId;
+
+  const RestaurantDetailView({super.key, required this.restaurantId});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => RestaurantsController(GetIt.instance()),
+      child: Consumer<RestaurantsController>(
+        builder: (context, controller, child) {
+          // Load restaurant details when the widget is built
+          if (controller.selectedRestaurant == null && !controller.isLoadingRestaurant) {
+            controller.loadRestaurantById(restaurantId);
+          }
+
+          return Scaffold(
+            appBar: CustomAppBar(
+              title: controller.selectedRestaurant?.name ?? 'Restaurant Details',
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    if (controller.selectedRestaurant != null) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ChangeNotifierProvider.value(
+                          value: Provider.of<RatingsController>(context, listen: false),
+                          child: RatingDialog(
+                            typeId: controller.selectedRestaurant!.id,
+                            type: 'restaurants',
+                            itemName: controller.selectedRestaurant!.name,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.star_border),
+                  tooltip: 'Rate this restaurant',
+                ),
+                IconButton(
+                  onPressed: () {
+                    // Handle sharing
+                  },
+                  icon: Icon(Icons.share),
+                ),
+              ],
+            ),
+            body: controller.isLoadingRestaurant
+                ? Center(child: CircularProgressIndicator())
+                : controller.errorMessage != null
+                    ? Center(child: Text('Error: ${controller.errorMessage}'))
+                    : controller.selectedRestaurant != null
+                        ? SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Restaurant Image
+                                _buildRestaurantImage(controller.selectedRestaurant!),
+                                
+                                // Restaurant Info
+                                _buildRestaurantInfo(controller.selectedRestaurant!),
+                                
+                                // Foods Section
+                                _buildFoodsSection(controller.selectedRestaurant!),
+                                
+                                // Action Buttons
+                                _buildActionButtons(context, controller.selectedRestaurant!),
+                              ],
+                            ),
+                          )
+                        : Center(child: Text('Restaurant not found')),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildRestaurantImage(Restaurant restaurant) {
+    return Container(
+      height: 250,
+      decoration: BoxDecoration(
+        color: Colors.grey[300],
+        image: restaurant.logo.isNotEmpty 
+            ? DecorationImage(
+                image: NetworkImage(restaurant.logo),
+                fit: BoxFit.cover,
+              )
+            : null,
+      ),
+      child: restaurant.logo.isEmpty
+          ? Center(
+              child: Icon(Icons.restaurant, size: 80, color: Colors.grey[600]),
+            )
+          : null,
+    );
+  }
+
+  Widget _buildRestaurantInfo(Restaurant restaurant) {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            restaurant.name,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 8),
+          Row(
+            children: [
+              Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+              SizedBox(width: 4),
+              Expanded(
+                child: Text(
+                  restaurant.address,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (restaurant.cuisineType.isNotEmpty) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.restaurant_menu, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 4),
+                Text(
+                  restaurant.cuisineType,
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ],
+          if (restaurant.openingHours != null) ...[
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                SizedBox(width: 4),
+                Text(
+                  '${restaurant.openingHours.openingTime} - ${restaurant.openingHours.closingTime}',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Colors.grey[600],
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFoodsSection(Restaurant restaurant) {
+    if (restaurant.foods.data.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Menu',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          SizedBox(height: 16),
+          ...restaurant.foods.data.map((food) => Card(
+            margin: EdgeInsets.only(bottom: 12),
+            child: ListTile(
+              title: Text(
+                food.name,
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              subtitle: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (food.description.isNotEmpty)
+                    Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(food.description),
+                    ),
+                  Padding(
+                    padding: EdgeInsets.only(top: 4),
+                    child: Text(
+                      '\$${food.priceRange.from} - \$${food.priceRange.to}',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              trailing: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  food.type,
+                  style: TextStyle(
+                    color: AppColors.primary,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          )).toList(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context, Restaurant restaurant) {
+    return Container(
+      padding: EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          if (restaurant.url != null && restaurant.url!.isNotEmpty)
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () async {
+                  final uri = Uri.parse(restaurant.url!);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  }
+                },
+                icon: Icon(Icons.open_in_browser),
+                label: Text('Visit Website'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+              ),
+            ),
         ],
       ),
     );

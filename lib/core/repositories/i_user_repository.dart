@@ -18,5 +18,13 @@ abstract class IUserRepository {
     required User user,
   });
 
+  Future<User> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  });
+
+  Future<void> forgotPassword(String email);
+
   Future<void> logoutUser();
 }

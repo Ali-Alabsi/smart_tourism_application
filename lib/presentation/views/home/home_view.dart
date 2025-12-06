@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/presentation/controllers/auth_controller.dart';
 import '../../../core/theme/app_colors.dart';
+import 'package:smart_tourism_application/presentation/widgets/main_bottom_nav_bar.dart';
 
 class HomeView extends StatelessWidget {
   @override
@@ -247,29 +248,22 @@ class HomeView extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.hotel),
-            label: 'Hotels',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.history),
-            label: 'History',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
+      bottomNavigationBar: MainBottomNavBar(
+        currentIndex: 0,
         onTap: (index) {
-          if (index == 3) { // Profile tab
-            Navigator.pushNamed(context, '/profile');
+          switch (index) {
+            case 0:
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              break;
+            case 1:
+              Navigator.pushNamedAndRemoveUntil(context, '/hotels', (route) => false);
+              break;
+            case 2:
+              Navigator.pushNamedAndRemoveUntil(context, '/budget-list', (route) => false);
+              break;
+            case 3:
+              Navigator.pushNamedAndRemoveUntil(context, '/profile', (route) => false);
+              break;
           }
         },
       ),

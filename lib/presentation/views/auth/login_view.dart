@@ -148,7 +148,7 @@ class _LoginViewState extends State<LoginView> {
                       Spacer(),
                       TextButton(
                         onPressed: () {
-                          // Handle forgot password
+                          _showForgotPasswordDialog(context);
                         },
                         child: Text('Forget password ?',
                         style: TextStyle(
@@ -229,7 +229,7 @@ class _LoginViewState extends State<LoginView> {
                   Center(
                     child: TextButton(
                       onPressed: () {
-                        // Navigate to registration screen
+                        Navigator.pushNamed(context, '/register');
                       },
                       child: Text('New Member? Register now'),
                     ),
@@ -240,6 +240,147 @@ class _LoginViewState extends State<LoginView> {
           ),
         ),
       ),
+    );
+  }
+
+  void _showForgotPasswordDialog(BuildContext context) {
+    final emailController = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+    final authController = Provider.of<AuthController>(context, listen: false);
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('Forgot Password'),
+              content: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Enter your email address and we will send you a link to reset your password.',
+                        style: TextStyle(fontSize: 14),
+                      ),
+                      SizedBox(height: 16),
+                      TextFormField(
+                        controller: emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'Enter your email',
+                          prefixIcon: Icon(Icons.email),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter your email';
+                          }
+                          if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                            return 'Please enter a valid email';
+                          }
+                          return null;
+                        },
+                      ),
+                      if (authController.errorMessage != null) ...[
+                        SizedBox(height: 12),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red),
+                          ),
+                          child: Text(
+                            authController.errorMessage!,
+                            style: TextStyle(
+                              color: Colors.red,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                      if (authController.successMessage != null) ...[
+                        SizedBox(height: 12),
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green),
+                          ),
+                          child: Text(
+                            authController.successMessage!,
+                            style: TextStyle(
+                              color: Colors.green,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: authController.isLoading
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                          authController.clearMessages();
+                        },
+                  child: Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: authController.isLoading
+                      ? null
+                      : () async {
+                          if (formKey.currentState!.validate()) {
+                            await authController.forgotPassword(
+                              emailController.text.trim(),
+                            );
+                            
+                            if (authController.errorMessage == null) {
+                              // Success - close dialog after a short delay
+                              Future.delayed(Duration(seconds: 1), () {
+                                if (mounted) {
+                                  Navigator.of(context).pop();
+                                  authController.clearMessages();
+                                }
+                              });
+                            } else {
+                              // Error - keep dialog open to show error
+                              setState(() {});
+                            }
+                          }
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                  ),
+                  child: authController.isLoading
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text('Send Reset Link'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 

@@ -5,6 +5,9 @@ import 'package:smart_tourism_application/presentation/controllers/flights_contr
 import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/flight.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dart';
+import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class FlightDetailView extends StatelessWidget {
   final int flightId;
@@ -23,6 +26,25 @@ class FlightDetailView extends StatelessWidget {
               actions: [
                 IconButton(
                   onPressed: () {
+                    if (controller.selectedFlight != null) {
+                      showDialog(
+                        context: context,
+                        builder: (context) => ChangeNotifierProvider.value(
+                          value: Provider.of<RatingsController>(context, listen: false),
+                          child: RatingDialog(
+                            typeId: controller.selectedFlight!.id,
+                            type: 'flight',
+                            itemName: controller.selectedFlight!.name,
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: Icon(Icons.star_border),
+                  tooltip: 'Rate this flight',
+                ),
+                IconButton(
+                  onPressed: () {
                     // Handle notifications
                   },
                   icon: Icon(Icons.notifications),
@@ -34,7 +56,7 @@ class FlightDetailView extends StatelessWidget {
                 : controller.errorMessage != null
                     ? Center(child: Text('Error: ${controller.errorMessage}'))
                     : controller.selectedFlight != null
-                        ? _buildFlightDetailContent(controller.selectedFlight!)
+                        ? _buildFlightDetailContent(controller.selectedFlight! ,  context)
                         : Center(child: Text('No flight data available')),
           );
         },
@@ -42,7 +64,7 @@ class FlightDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildFlightDetailContent(Flight flight) {
+  Widget _buildFlightDetailContent(Flight flight , BuildContext context) {
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -57,7 +79,7 @@ class FlightDetailView extends StatelessWidget {
           _buildFlightDetails(flight),
           
           // Action Buttons
-          _buildActionButtons(),
+          _buildActionButtons(flight , context),
         ],
       ),
     );
@@ -214,7 +236,7 @@ class FlightDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(Flight flight, BuildContext context) {
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Row(
@@ -237,8 +259,36 @@ class FlightDetailView extends StatelessWidget {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle booking
+              onPressed: () async {
+                if (flight.url != null && flight.url!.isNotEmpty) {
+                  try {
+                    final uri = Uri.parse(flight.url!);
+                    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                      // Successfully launched
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open booking link'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not open booking link: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No booking link available for this flight'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

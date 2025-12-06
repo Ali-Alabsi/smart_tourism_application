@@ -30,4 +30,27 @@ class HotelsApi {
       }
     }
   }
+
+  Future<Hotel> getHotelById(int id) async {
+    try {
+      final response = await _dioClient.get('/api/hotels/$id');
+      
+      if (response.statusCode == 200) {
+        final data = response.data;
+        if (data['success'] == true) {
+          return Hotel.fromJson(data['data']);
+        } else {
+          throw Exception('Failed to load hotel: ${data['message']}');
+        }
+      } else {
+        throw Exception('Failed to load hotel: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        throw Exception('Failed to load hotel: ${e.response?.data}');
+      } else {
+        throw Exception('Failed to load hotel: ${e.message}');
+      }
+    }
+  }
 }

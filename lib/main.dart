@@ -8,6 +8,7 @@ import 'package:smart_tourism_application/presentation/controllers/destination_c
 import 'package:smart_tourism_application/presentation/controllers/booking_controller.dart';
 import 'package:smart_tourism_application/presentation/controllers/budget_controller.dart';
 import 'package:smart_tourism_application/presentation/controllers/destinations_controller.dart';
+import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
 import 'package:smart_tourism_application/presentation/views/budget/budget_view.dart';
 import 'package:smart_tourism_application/presentation/views/budget/budget_planning_view.dart';
 import 'package:smart_tourism_application/presentation/views/budget/budget_list_view.dart';
@@ -26,6 +27,7 @@ import 'presentation/views/notifications/notifications_list_view.dart';
 import 'presentation/views/destinations/destinations_list_view.dart';
 import 'package:smart_tourism_application/presentation/views/flight_itinerary/flight_detail_view.dart';
 import 'package:smart_tourism_application/presentation/views/restaurant/restaurant_list_view.dart';
+import 'package:smart_tourism_application/presentation/widgets/side_code_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -53,10 +55,13 @@ class MyApp extends StatelessWidget {
           create: (_) => BookingController(getIt()),
         ),
         ChangeNotifierProvider(
-          create: (_) => BudgetController(getIt(), getIt()),
+          create: (_) => BudgetController(getIt(), getIt(), getIt(), getIt(), getIt()),
         ),
         ChangeNotifierProvider(
           create: (_) => DestinationsController(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => RatingsController(getIt()),
         ),
         // ChangeNotifierProvider(
         //   create: (_) => HotelBookingController(),
@@ -69,6 +74,13 @@ class MyApp extends StatelessWidget {
           colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
+        // builder: (context, child) {
+        //   return SideCodeWidget(
+        //     child: child!,
+        //     leftCode: '// Report ID: L001',
+        //     rightCode: '// Report ID: R001',
+        //   );
+        // },
         initialRoute: '/login',
         routes: {
           '/onboarding': (context) => const OnboardingScreen(),

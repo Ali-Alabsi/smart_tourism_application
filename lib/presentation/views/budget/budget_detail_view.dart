@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:smart_tourism_application/core/entities/budget.dart';
 import 'package:smart_tourism_application/core/theme/app_colors.dart';
+import 'package:smart_tourism_application/data/models/budgets_responce_model.dart';
+import 'package:smart_tourism_application/presentation/views/flight_itinerary/flight_detail_view.dart';
+import 'package:smart_tourism_application/presentation/views/activities/activities_list_view.dart';
+import 'package:smart_tourism_application/presentation/views/restaurant/restaurant_list_view.dart';
+import 'package:smart_tourism_application/presentation/views/hotel/hotel_list_view.dart';
 
 class BudgetDetailItem {
   final Budget budget;
   final String title;
   final String destination;
   final int travelers;
+  final Datum? budgetData; // Add API data
 
   BudgetDetailItem({
     required this.budget,
     required this.title,
     required this.destination,
     required this.travelers,
+    this.budgetData,
   });
 }
 
@@ -48,7 +55,7 @@ class BudgetDetailView extends StatelessWidget {
             _buildBudgetSummaryCard(),
             
             // Budget breakdown section
-            _buildBudgetBreakdownSection(allocations, totalAmount),
+            // _buildBudgetBreakdownSection(allocations, totalAmount),
             
             // AI Suggestions section
             _buildAISuggestionsSection(),
@@ -123,12 +130,14 @@ class BudgetDetailView extends StatelessWidget {
               SizedBox(width: 20),
               Icon(Icons.timer, color: Colors.white, size: 20),
               SizedBox(width: 8),
-              Text(
-                '$duration days',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w500,
+              Expanded(
+                child: Text(
+                  '$duration days',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
             ],
@@ -327,13 +336,24 @@ class BudgetDetailView extends StatelessWidget {
   }
 
   Widget _buildAISuggestionsSection() {
+    if (budgetItem.budgetData == null || budgetItem.budgetData!.subcategories.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    // Display all subcategories from API (hotel, restaurant, activities, plane, other)
+    final allSubcategories = budgetItem.budgetData!.subcategories;
+
+    if (allSubcategories.isEmpty) {
+      return SizedBox.shrink();
+    }
+
     return Container(
       margin: EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'AI-Powered Suggestions',
+            'Budget Items',
             style: TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,
@@ -341,49 +361,11 @@ class BudgetDetailView extends StatelessWidget {
             ),
           ),
           SizedBox(height: 20),
-          _SuggestionCategoryCard(
-            icon: Icons.hotel,
-            title: 'Accommodations',
-            description: 'Recommended hotels and lodging options based on your budget and preferences',
-            items: [
-              'Grand Plaza Hotel - \$120/night (4.5★)',
-              'Seaside Resort - \$150/night (5★)',
-              'City Center Inn - \$80/night (3★)',
-            ],
-          ),
-          SizedBox(height: 20),
-          _SuggestionCategoryCard(
-            icon: Icons.local_dining,
-            title: 'Food & Dining',
-            description: 'Restaurant recommendations and local cuisine options',
-            items: [
-              'Local Restaurant - \$15/meal',
-              'Fine Dining Experience - \$50/meal',
-              'Street Food Tour - \$10/person',
-            ],
-          ),
-          SizedBox(height: 20),
-          _SuggestionCategoryCard(
-            icon: Icons.directions_car,
-            title: 'Transportation',
-            description: 'Best travel options for your trip',
-            items: [
-              'Airport Transfer - \$25',
-              'Daily Car Rental - \$45/day',
-              'Public Transit Pass - \$10/day',
-            ],
-          ),
-          SizedBox(height: 20),
-          _SuggestionCategoryCard(
-            icon: Icons.local_activity,
-            title: 'Activities & Tours',
-            description: 'Top attractions and experiences',
-            items: [
-              'City Walking Tour - \$20/person',
-              'Museum Entry - \$15/person',
-              'Adventure Park - \$40/person',
-            ],
-          ),
+          ...allSubcategories.map((subcategory) {
+            return _SuggestionCategoryCard(
+              subcategory: subcategory,
+            );
+          }).toList(),
         ],
       ),
     );
@@ -450,17 +432,116 @@ class _AllocationDetailItem extends StatelessWidget {
 }
 
 class _SuggestionCategoryCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-  final List<String> items;
+  final Subcategory subcategory;
 
   const _SuggestionCategoryCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.items,
+    required this.subcategory,
   });
+
+  IconData _getIconForType(Type type) {
+    switch (type) {
+      case Type.PLANE:
+        return Icons.flight;
+      case Type.RESTAURANT:
+        return Icons.restaurant;
+      case Type.ACTIVITIES:
+        return Icons.local_activity;
+      case Type.OTHER:
+        return Icons.category;
+      case Type.HOTEL:
+        return Icons.hotel;
+    }
+  }
+
+  String _getTitleForType(Type type) {
+    switch (type) {
+      case Type.PLANE:
+        return 'Flights';
+      case Type.RESTAURANT:
+        return 'Restaurants';
+      case Type.ACTIVITIES:
+        return 'Events';
+      case Type.OTHER:
+        return 'Clubs';
+      case Type.HOTEL:
+        return 'Hotels';
+    }
+  }
+
+  String _getDescriptionForType(Type type) {
+    switch (type) {
+      case Type.PLANE:
+        return 'Flight options and bookings';
+      case Type.RESTAURANT:
+        return 'Restaurant recommendations and dining options';
+      case Type.ACTIVITIES:
+        return 'Events and activities';
+      case Type.OTHER:
+        return 'Clubs and other options';
+      case Type.HOTEL:
+        return 'Hotel recommendations';
+    }
+  }
+
+  String _getDescriptionText(Description description) {
+    // Convert enum to readable string
+    switch (description) {
+      case Description.HOTEL_BUDGET:
+        return 'Hotel budget';
+      case Description.RESTAURANT_BUDGET:
+        return 'Restaurant budget';
+      case Description.ACTIVITIES_BUDGET:
+        return 'Activities budget';
+      case Description.DESC:
+        return 'Other budget';
+    }
+  }
+
+  void _navigateToDetail(BuildContext context, Type type, int itemId) {
+    switch (type) {
+      case Type.PLANE:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => FlightDetailView(flightId: itemId),
+          ),
+        );
+        break;
+      case Type.RESTAURANT:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => RestaurantDetailView(restaurantId: itemId),
+          ),
+        );
+        break;
+      case Type.ACTIVITIES:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ActivityDetailView(activityId: itemId),
+          ),
+        );
+        break;
+      case Type.OTHER:
+        // No detail page for clubs/other
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Detail page not available for this item'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        break;
+      case Type.HOTEL:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HotelDetailView(hotelId: itemId),
+          ),
+        );
+        break;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -472,14 +553,14 @@ class _SuggestionCategoryCard extends StatelessWidget {
       child: ExpansionTile(
         title: Row(
           children: [
-            Icon(icon, color: AppColors.primary, size: 24),
+            Icon(_getIconForType(subcategory.type), color: AppColors.primary, size: 24),
             SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
+                    _getTitleForType(subcategory.type),
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
@@ -488,7 +569,7 @@ class _SuggestionCategoryCard extends StatelessWidget {
                   ),
                   SizedBox(height: 4),
                   Text(
-                    description,
+                    _getDescriptionForType(subcategory.type),
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -505,53 +586,224 @@ class _SuggestionCategoryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...items.map((item) => Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10),
-                  child: Row(
+                // Display subcategory details from API
+                if (subcategory.name != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Text(
+                      'Name: ${subcategory.name}',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                  ),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 20,
-                        color: AppColors.primary,
+                      Text(
+                        'Description:',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
                       ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: TextStyle(
-                            fontSize: 16,
-                            height: 1.4,
-                          ),
+                      SizedBox(height: 4),
+                      Text(
+                        subcategory.descriptionText.isNotEmpty 
+                            ? subcategory.descriptionText 
+                            : _getDescriptionText(subcategory.description),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
                         ),
                       ),
                     ],
                   ),
-                )).toList(),
-                SizedBox(height: 20),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // TODO: Implement view details functionality
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(24),
+                ),
+                Padding(
+                  padding: EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Percentage: ',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.grey[700],
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      'View Details',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
+                      Text(
+                        '${subcategory.percentage}%',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
+                if (subcategory.allocatedAmount != null)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Allocated Amount: ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        Text(
+                          '\$${subcategory.allocatedAmount}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                if (subcategory.spentAmount.isNotEmpty)
+                  Padding(
+                    padding: EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Spent Amount: ',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        Text(
+                          '\$${subcategory.spentAmount}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                Divider(),
+                SizedBox(height: 8),
+                Text(
+                  'Items:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
+                  ),
+                ),
+                SizedBox(height: 12),
+                if (subcategory.items.isEmpty)
+                  Padding(
+                    padding: EdgeInsets.symmetric(vertical: 10),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.info_outline,
+                          size: 20,
+                          color: Colors.orange,
+                        ),
+                        SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'No items available - This item is currently unavailable',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.orange[700],
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...subcategory.items.map((item) => InkWell(
+                    onTap: () => _navigateToDetail(context, subcategory.type, item.typeId),
+                    child: Card(
+                      margin: EdgeInsets.only(bottom: 8),
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              size: 20,
+                              color: AppColors.primary,
+                            ),
+                            SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'ID: ${item.id}',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                  Text(
+                                    'Amount: \$${item.amount}',
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: AppColors.primary,
+                                    ),
+                                  ),
+                                  if (item.types != null)
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'Type: ${item.types.toString().split('.').last}',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ),
+                                  if (item.purchasedAt != null)
+                                    Padding(
+                                      padding: EdgeInsets.only(top: 4),
+                                      child: Text(
+                                        'Purchased At: ${item.purchasedAt}',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.grey[500],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            Icon(
+                              Icons.arrow_forward_ios,
+                              size: 16,
+                              color: Colors.grey[400],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  )).toList(),
               ],
             ),
           ),

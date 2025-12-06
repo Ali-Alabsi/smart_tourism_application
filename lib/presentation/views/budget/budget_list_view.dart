@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/budget.dart';
 import 'package:smart_tourism_application/core/theme/app_colors.dart';
+import 'package:smart_tourism_application/data/models/budgets_responce_model.dart';
 import 'budget_planning_view.dart';
 import 'budget_detail_view.dart';
+import 'package:smart_tourism_application/presentation/widgets/main_bottom_nav_bar.dart';
+import '../../controllers/budget_controller.dart';
 
 class BudgetListView extends StatefulWidget {
   @override
@@ -10,93 +14,122 @@ class BudgetListView extends StatefulWidget {
 }
 
 class _BudgetListViewState extends State<BudgetListView> {
-  // Mock data for budgets
   List<BudgetDetailItem> _budgets = [];
 
   @override
   void initState() {
     super.initState();
-    _loadMockBudgets();
+    _loadBudgets();
   }
 
-  void _loadMockBudgets() {
-    setState(() {
-      _budgets = [
-        BudgetDetailItem(
-          budget: Budget(
-            id: '1',
-            userId: 'user1',
-            totalAmount: 2500.0,
-            allocations: {
-              'Accommodation': 1000.0,
-              'Transportation': 300.0,
-              'Food': 500.0,
-              'Activities': 400.0,
-              'Shopping': 300.0,
-            },
-            startDate: DateTime.now().subtract(Duration(days: 5)),
-            endDate: DateTime.now().add(Duration(days: 10)),
+  void _loadBudgets() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final budgetController = Provider.of<BudgetController>(context, listen: false);
+      await budgetController.loadBudgets();
+      if (!mounted) return;
+      print("budgetsError ${budgetController.budgetsError}");
+      if (budgetController.budgetsError != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading budgets: ${budgetController.budgetsError}'),
+            backgroundColor: Colors.red,
           ),
-          title: 'Summer Vacation',
-          destination: 'Riyadh, Saudi Arabia',
-          travelers: 2,
-        ),
-        BudgetDetailItem(
-          budget: Budget(
-            id: '2',
-            userId: 'user1',
-            totalAmount: 1800.0,
-            allocations: {
-              'Accommodation': 800.0,
-              'Transportation': 250.0,
-              'Food': 400.0,
-              'Activities': 350.0,
-            },
-            startDate: DateTime.now().add(Duration(days: 15)),
-            endDate: DateTime.now().add(Duration(days: 22)),
-          ),
-          title: 'Weekend Getaway',
-          destination: 'Jeddah, Saudi Arabia',
-          travelers: 1,
-        ),
-        BudgetDetailItem(
-          budget: Budget(
-            id: '3',
-            userId: 'user1',
-            totalAmount: 3200.0,
-            allocations: {
-              'Accommodation': 1200.0,
-              'Transportation': 400.0,
-              'Food': 600.0,
-              'Activities': 500.0,
-              'Shopping': 500.0,
-            },
-            startDate: DateTime.now().add(Duration(days: 30)),
-            endDate: DateTime.now().add(Duration(days: 45)),
-          ),
-          title: 'Family Trip',
-          destination: 'Medina & Makkah',
-          travelers: 4,
-        ),
-      ];
+        );
+      } else {
+        setState(() {
+          _budgets = _convertBudgetsToDetailItems(budgetController.budgets);
+        });
+      }
     });
+  }
+
+  List<BudgetDetailItem> _convertBudgetsToDetailItems(List<Datum> budgets) {
+    return budgets.map((budget) {
+      // Convert subcategories to allocations map
+      final allocations = <String, double>{};
+      final totalAmount = double.tryParse(budget.amount) ?? 0.0;
+      
+      for (var subcategory in budget.subcategories) {
+        final categoryName = _getCategoryNameFromType(subcategory.type);
+        final allocatedAmount = totalAmount * (subcategory.percentage / 100);
+        allocations[categoryName] = allocatedAmount;
+      }
+
+      // Create Budget entity
+      final budgetEntity = Budget(
+        id: budget.id.toString(),
+        userId: budget.userId.toString(),
+        totalAmount: totalAmount,
+        allocations: allocations,
+        startDate: budget.createdAt,
+        endDate: budget.createdAt.add(Duration(days: budget.days)),
+      );
+
+      // Create destination string
+      final cityName = _getCityNameString(budget.toCity.name);
+      final countryName = _getCountryNameString(budget.toCity.country);
+      final destination = '$cityName, $countryName';
+
+      return BudgetDetailItem(
+        budget: budgetEntity,
+        title: budget.name,
+        destination: destination,
+        travelers: budget.teamsNumber,
+        budgetData: budget, // Pass API data
+      );
+    }).toList();
+  }
+
+  String _getCategoryNameFromType(Type type) {
+    switch (type) {
+      case Type.HOTEL:
+        return 'Accommodation';
+      case Type.RESTAURANT:
+        return 'Food';
+      case Type.ACTIVITIES:
+        return 'Activities';
+      case Type.PLANE:
+        return 'Transportation';
+      case Type.OTHER:
+        return 'Other';
+    }
+  }
+
+  String _getCityNameString(Name name) {
+    switch (name) {
+      case Name.JEDDAH:
+        return 'Jeddah';
+      case Name.RIYADH:
+        return 'Riyadh';
+    }
+  }
+
+  String _getCountryNameString(Country country) {
+    switch (country) {
+      case Country.SAUDI_ARABIA:
+        return 'Saudi Arabia';
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final budgetController = Provider.of<BudgetController>(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('My Budgets'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
       ),
-      body: _budgets.isEmpty
-          ? _buildEmptyState()
-          : ListView.builder(
+      body: budgetController.isBudgetsLoading
+          ? Center(
+              child: CircularProgressIndicator(
+                color: AppColors.primary,
+              ),
+            )
+          : _budgets.isEmpty
+              ? _buildEmptyState()
+              : ListView.builder(
               padding: EdgeInsets.all(16.0),
               itemCount: _budgets.length + 1, // +1 for the add button
               itemBuilder: (context, index) {
@@ -113,6 +146,25 @@ class _BudgetListViewState extends State<BudgetListView> {
                 );
               },
             ),
+      bottomNavigationBar: MainBottomNavBar(
+        currentIndex: 2,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              break;
+            case 1:
+              Navigator.pushNamedAndRemoveUntil(context, '/hotels', (route) => false);
+              break;
+            case 2:
+              // Already on budget page
+              break;
+            case 3:
+              Navigator.pushNamedAndRemoveUntil(context, '/profile', (route) => false);
+              break;
+          }
+        },
+      ),
     );
   }
 
@@ -266,15 +318,6 @@ class __BudgetCardState extends State<_BudgetCard> {
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  Switch(
-                    value: _isEnabled,
-                    onChanged: (value) {
-                      setState(() {
-                        _isEnabled = value;
-                      });
-                    },
-                    activeColor: AppColors.primary,
                   ),
                 ],
               ),

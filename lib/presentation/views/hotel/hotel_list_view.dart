@@ -5,6 +5,10 @@ import 'package:smart_tourism_application/presentation/controllers/hotels_contro
 import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/hotel.dart';
 import 'package:get_it/get_it.dart';
+import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dart';
+import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
+import 'package:smart_tourism_application/presentation/widgets/main_bottom_nav_bar.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HotelListView extends StatelessWidget {
   const HotelListView({super.key});
@@ -51,6 +55,25 @@ class HotelListView extends StatelessWidget {
                           ),
                         ),
                       ),
+            bottomNavigationBar: MainBottomNavBar(
+              currentIndex: 1,
+              onTap: (index) {
+                switch (index) {
+                  case 0:
+                    Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+                    break;
+                  case 1:
+                    // Already on hotels page
+                    break;
+                  case 2:
+                    Navigator.pushNamedAndRemoveUntil(context, '/budget-list', (route) => false);
+                    break;
+                  case 3:
+                    Navigator.pushNamedAndRemoveUntil(context, '/profile', (route) => false);
+                    break;
+                }
+              },
+            ),
           );
         },
       ),
@@ -336,16 +359,91 @@ class _HotelCard extends StatelessWidget {
 }
 
 class HotelDetailView extends StatelessWidget {
-  final Hotel hotel;
+  final Hotel? hotel;
+  final int? hotelId;
 
-  const HotelDetailView({super.key, required this.hotel});
+  const HotelDetailView({super.key, this.hotel, this.hotelId})
+      : assert(hotel != null || hotelId != null, 'Either hotel or hotelId must be provided');
 
   @override
   Widget build(BuildContext context) {
+    // If hotelId is provided, use controller to load hotel
+    if (hotelId != null) {
+      return ChangeNotifierProvider(
+        create: (context) => HotelsController(GetIt.instance()),
+        child: Consumer<HotelsController>(
+          builder: (context, controller, child) {
+            // Load hotel details when the widget is built
+            if (controller.selectedHotel == null && !controller.isLoadingHotel) {
+              controller.loadHotelById(hotelId!);
+            }
+
+            return Scaffold(
+              appBar: CustomAppBar(
+                title: controller.selectedHotel?.name ?? 'Hotel Details',
+                actions: [
+                  IconButton(
+                    onPressed: () {
+                      if (controller.selectedHotel != null) {
+                        showDialog(
+                          context: context,
+                          builder: (context) => ChangeNotifierProvider.value(
+                            value: Provider.of<RatingsController>(context, listen: false),
+                            child: RatingDialog(
+                              typeId: controller.selectedHotel!.id,
+                              type: 'hotel',
+                              itemName: controller.selectedHotel!.name,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    icon: Icon(Icons.star_border),
+                    tooltip: 'Rate this hotel',
+                  ),
+                  IconButton(
+                    onPressed: () {
+                      // Handle sharing
+                    },
+                    icon: Icon(Icons.share),
+                  ),
+                ],
+              ),
+              body: controller.isLoadingHotel
+                  ? Center(child: CircularProgressIndicator())
+                  : controller.errorMessage != null
+                      ? Center(child: Text('Error: ${controller.errorMessage}'))
+                      : controller.selectedHotel != null
+                          ? _buildHotelContent(context, controller.selectedHotel!)
+                          : Center(child: Text('Hotel not found')),
+            );
+          },
+        ),
+      );
+    }
+
+    // If hotel object is provided, use it directly
     return Scaffold(
       appBar: CustomAppBar(
-        title: hotel.name,
+        title: hotel!.name,
         actions: [
+          IconButton(
+            onPressed: () {
+              showDialog(
+                context: context,
+                builder: (context) => ChangeNotifierProvider.value(
+                  value: Provider.of<RatingsController>(context, listen: false),
+                  child: RatingDialog(
+                    typeId: hotel!.id,
+                    type: 'hotel',
+                    itemName: hotel!.name,
+                  ),
+                ),
+              );
+            },
+            icon: Icon(Icons.star_border),
+            tooltip: 'Rate this hotel',
+          ),
           IconButton(
             onPressed: () {
               // Handle sharing
@@ -354,31 +452,35 @@ class HotelDetailView extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Hotel Image
-            _buildHotelImage(),
-            
-            // Hotel Info
-            _buildHotelInfo(),
-            
-            // Features
-            _buildFeatures(),
-            
-            // Description
-            _buildDescription(),
-            
-            // Action Buttons
-            _buildActionButtons(context),
-          ],
-        ),
+      body: _buildHotelContent(context, hotel!),
+    );
+  }
+
+  Widget _buildHotelContent(BuildContext context, Hotel hotel) {
+    return SingleChildScrollView(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Hotel Image
+          _buildHotelImage(hotel),
+          
+          // Hotel Info
+          _buildHotelInfo(hotel),
+          
+          // Features
+          _buildFeatures(hotel),
+          
+          // Description
+          _buildDescription(hotel),
+          
+          // Action Buttons
+          _buildActionButtons(context, hotel),
+        ],
       ),
     );
   }
 
-  Widget _buildHotelImage() {
+  Widget _buildHotelImage(Hotel hotel) {
     return Container(
       height: 250,
       decoration: BoxDecoration(
@@ -392,7 +494,7 @@ class HotelDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildHotelInfo() {
+  Widget _buildHotelInfo(Hotel hotel) {
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -446,7 +548,7 @@ class HotelDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatures() {
+  Widget _buildFeatures(Hotel hotel) {
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Column(
@@ -475,7 +577,7 @@ class HotelDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildDescription() {
+  Widget _buildDescription(Hotel hotel) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.0),
       child: Column(
@@ -501,7 +603,7 @@ class HotelDetailView extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context) {
+  Widget _buildActionButtons(BuildContext context, Hotel hotel) {
     return Container(
       padding: EdgeInsets.all(16.0),
       child: Row(
@@ -524,14 +626,36 @@ class HotelDetailView extends StatelessWidget {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed: () {
-                // Handle booking
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Booking functionality would be implemented here'),
-                    backgroundColor: AppColors.primary,
-                  ),
-                );
+              onPressed: () async {
+                if (hotel.url != null && hotel.url!.isNotEmpty) {
+                  try {
+                    final uri = Uri.parse(hotel.url!);
+                    if (await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+                      // Successfully launched
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Could not open booking link'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Could not open booking link: ${e.toString()}'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('No booking link available for this hotel'),
+                      backgroundColor: Colors.orange,
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,

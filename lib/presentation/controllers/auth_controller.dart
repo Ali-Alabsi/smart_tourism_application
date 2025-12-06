@@ -8,7 +8,7 @@ class AuthController extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
-  User? _currentUser= User(id: "1", name: "name", email: "email", phoneNumber: "phoneNumber");
+  User? _currentUser = User(id: "1", name: "name", email: "email", phoneNumber: "phoneNumber");
 
   // Callbacks for navigation
   Function()? onLoginSuccess;
@@ -69,6 +69,66 @@ class AuthController extends ChangeNotifier {
     }
   }
 
+  Future<void> updateUserProfile({
+    required String name,
+    required String email,
+    required String phoneNumber,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+
+    try {
+      if (_currentUser == null) {
+        throw Exception('No user logged in');
+      }
+
+      final updatedUser = await _authService.updateProfile(
+        _currentUser!.copyWith(
+          name: name,
+          email: email,
+          phoneNumber: phoneNumber,
+        ),
+      );
+
+      _currentUser = updatedUser;
+      _successMessage = "Profile updated successfully";
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String newPasswordConfirmation,
+  }) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+
+    try {
+      final updatedUser = await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+        newPasswordConfirmation: newPasswordConfirmation,
+      );
+
+      _currentUser = updatedUser;
+      _successMessage = "Password changed successfully";
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   // Add verification methods
   Future<void> verifyEmailCode(String code) async {
     _isLoading = true;
@@ -108,6 +168,29 @@ class AuthController extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> forgotPassword(String email) async {
+    _isLoading = true;
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.forgotPassword(email);
+      _successMessage = "Password reset link sent to your email.";
+    } catch (e) {
+      _errorMessage = e.toString();
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void clearMessages() {
+    _errorMessage = null;
+    _successMessage = null;
+    notifyListeners();
   }
 
   void logout() {

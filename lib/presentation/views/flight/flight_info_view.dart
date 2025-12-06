@@ -47,10 +47,10 @@ class FlightInfoView extends StatelessWidget {
                               _buildFlightDetails(controller.flights),
                               
                               // Travel Tips
-                              _buildTravelTips(),
+                              // _buildTravelTips(),
                               
                               // Action Buttons
-                              _buildActionButtons(),
+                              // _buildActionButtons(),
                             ],
                           ),
                         ),

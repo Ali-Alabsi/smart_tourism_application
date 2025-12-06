@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/user.dart';
 import 'package:smart_tourism_application/core/theme/app_colors.dart';
 import 'package:smart_tourism_application/presentation/controllers/auth_controller.dart';
+import 'package:smart_tourism_application/presentation/widgets/main_bottom_nav_bar.dart';
 
 class ProfileView extends StatefulWidget {
   @override
@@ -19,7 +20,7 @@ class _ProfileViewState extends State<ProfileView> {
 
   final _formKey = GlobalKey<FormState>();
   bool _isEditing = false;
-  bool _showChangePassword = false;
+  bool _showChangePassword = false; // not used for inline anymore but kept if needed
 
   @override
   void initState() {
@@ -57,14 +58,15 @@ class _ProfileViewState extends State<ProfileView> {
         actions: [
           IconButton(
             icon: Icon(_isEditing ? Icons.check : Icons.edit),
-            onPressed: () {
-              setState(() {
-                if (_isEditing) {
-                  // Save changes
-                  _saveProfile();
-                }
-                _isEditing = !_isEditing;
-              });
+            onPressed: () async {
+              if (_isEditing) {
+                // Save changes
+                await _saveProfile();
+              } else {
+                setState(() {
+                  _isEditing = true;
+                });
+              }
             },
           ),
         ],
@@ -118,6 +120,25 @@ class _ProfileViewState extends State<ProfileView> {
               ],
             ),
           );
+        },
+      ),
+      bottomNavigationBar: MainBottomNavBar(
+        currentIndex: 3,
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+              break;
+            case 1:
+              Navigator.pushNamedAndRemoveUntil(context, '/hotels', (route) => false);
+              break;
+            case 2:
+              Navigator.pushNamedAndRemoveUntil(context, '/budget-list', (route) => false);
+              break;
+            case 3:
+              // Already on profile page
+              break;
+          }
         },
       ),
     );
@@ -311,87 +332,18 @@ class _ProfileViewState extends State<ProfileView> {
                     color: AppColors.primary,
                   ),
                 ),
-                IconButton(
-                  icon: Icon(
-                    _showChangePassword ? Icons.expand_less : Icons.expand_more,
-                  ),
-                  onPressed: () {
-                    setState(() {
-                      _showChangePassword = !_showChangePassword;
-                    });
-                  },
-                ),
-              ],
-            ),
-            if (_showChangePassword) ...[
-              SizedBox(height: 16),
-              _buildTextField(
-                controller: _currentPasswordController,
-                label: 'Current Password',
-                icon: Icons.lock,
-                enabled: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter your current password';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              _buildTextField(
-                controller: _newPasswordController,
-                label: 'New Password',
-                icon: Icons.lock_outline,
-                enabled: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a new password';
-                  }
-                  if (value.length < 6) {
-                    return 'Password must be at least 6 characters';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              _buildTextField(
-                controller: _confirmPasswordController,
-                label: 'Confirm New Password',
-                icon: Icons.lock_outline,
-                enabled: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please confirm your new password';
-                  }
-                  if (value != _newPasswordController.text) {
-                    return 'Passwords do not match';
-                  }
-                  return null;
-                },
-              ),
-              SizedBox(height: 16),
-              Align(
-                alignment: Alignment.centerRight,
-                child: ElevatedButton(
-                  onPressed: _handleChangePassword,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
+                TextButton(
+                  onPressed: _showChangePasswordDialog,
                   child: Text(
-                    'Update Password',
+                    'Change',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primary,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ],
         ),
       ),
@@ -538,31 +490,7 @@ class _ProfileViewState extends State<ProfileView> {
               ),
             ),
             SizedBox(height: 16),
-            ListTile(
-              leading: Icon(
-                Icons.history,
-                color: AppColors.primary,
-              ),
-              title: Text('Booking History'),
-              subtitle: Text('View your past bookings and activities'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // Navigate to booking history
-              },
-            ),
-            Divider(),
-            ListTile(
-              leading: Icon(
-                Icons.bookmark,
-                color: AppColors.primary,
-              ),
-              title: Text('Saved Items'),
-              subtitle: Text('View your saved destinations and activities'),
-              trailing: Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                // Navigate to saved items
-              },
-            ),
+
             Divider(),
             ListTile(
               leading: Icon(
@@ -584,54 +512,167 @@ class _ProfileViewState extends State<ProfileView> {
     );
   }
 
-  void _saveProfile() {
+  Future<void> _saveProfile() async {
     if (_formKey.currentState!.validate()) {
-      // Save profile changes
       final authController = Provider.of<AuthController>(context, listen: false);
-      // In a real implementation, you would call the updateProfile API here
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Profile updated successfully'), // English localization
-          backgroundColor: Colors.green,
-        ),
-      );
-    }
-  }
 
-  void _handleChangePassword() {
-    if (_currentPasswordController.text.isNotEmpty &&
-        _newPasswordController.text.isNotEmpty &&
-        _confirmPasswordController.text.isNotEmpty) {
-      if (_newPasswordController.text == _confirmPasswordController.text) {
-        // In a real implementation, you would call the change password API here
+      await authController.updateUserProfile(
+        name: _nameController.text.trim(),
+        email: _emailController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+      );
+
+      if (authController.errorMessage != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Password changed successfully'), // English localization
-            backgroundColor: Colors.green,
-          ),
-        );
-        // Clear password fields
-        _currentPasswordController.clear();
-        _newPasswordController.clear();
-        _confirmPasswordController.clear();
-        setState(() {
-          _showChangePassword = false;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Passwords do not match'), // English localization
+            content: Text(authController.errorMessage!),
             backgroundColor: Colors.red,
           ),
         );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(authController.successMessage ?? 'Profile updated successfully'), // English localization
+            backgroundColor: Colors.green,
+          ),
+        );
+        setState(() {
+          _isEditing = false;
+        });
       }
-    } else {
+    }
+  }
+
+  void _showChangePasswordDialog() {
+    _currentPasswordController.clear();
+    _newPasswordController.clear();
+    _confirmPasswordController.clear();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Change Password'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildTextField(
+                  controller: _currentPasswordController,
+                  label: 'Current Password',
+                  icon: Icons.lock,
+                  enabled: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your current password';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                _buildTextField(
+                  controller: _newPasswordController,
+                  label: 'New Password',
+                  icon: Icons.lock_outline,
+                  enabled: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter a new password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
+                    return null;
+                  },
+                ),
+                SizedBox(height: 16),
+                _buildTextField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm New Password',
+                  icon: Icons.lock_outline,
+                  enabled: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm your new password';
+                    }
+                    if (value != _newPasswordController.text) {
+                      return 'Passwords do not match';
+                    }
+                    return null;
+                  },
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _handleChangePassword();
+              },
+              child: Text(
+                'Update',
+                style: TextStyle(color: AppColors.primary),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _handleChangePassword() async {
+    if (_currentPasswordController.text.isEmpty ||
+        _newPasswordController.text.isEmpty ||
+        _confirmPasswordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Please fill all password fields'), // English localization
+          content: Text('Please fill all password fields'),
           backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    if (_newPasswordController.text != _confirmPasswordController.text) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Passwords do not match'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final authController = Provider.of<AuthController>(context, listen: false);
+
+    await authController.changePassword(
+      currentPassword: _currentPasswordController.text.trim(),
+      newPassword: _newPasswordController.text.trim(),
+      newPasswordConfirmation: _confirmPasswordController.text.trim(),
+    );
+
+    if (authController.errorMessage != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authController.errorMessage!),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authController.successMessage ?? 'Password changed successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.of(context).pop();
     }
   }
 
