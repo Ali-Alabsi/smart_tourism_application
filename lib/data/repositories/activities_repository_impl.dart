@@ -8,9 +8,17 @@ class ActivitiesRepositoryImpl implements IActivitiesRepository {
   ActivitiesRepositoryImpl(this._activitiesApi);
 
   @override
-  Future<List<Activity>> getActivities() async {
+  Future<List<Activity>> getActivities({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      return await _activitiesApi.getActivities();
+      return await _activitiesApi.getActivities(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       throw Exception('Failed to get activities: $e');
     }

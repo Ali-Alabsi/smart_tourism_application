@@ -6,14 +6,62 @@ import 'package:provider/provider.dart';
 import 'package:smart_tourism_application/core/entities/flight.dart';
 import 'package:get_it/get_it.dart';
 import 'package:smart_tourism_application/presentation/views/flight_itinerary/flight_detail_view.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:smart_tourism_application/core/entities/city.dart' as entities;
+import 'package:smart_tourism_application/core/use_cases/city/get_cities.dart';
 
-class FlightInfoView extends StatelessWidget {
+class FlightInfoView extends StatefulWidget {
   const FlightInfoView({super.key});
+
+  @override
+  State<FlightInfoView> createState() => _FlightInfoViewState();
+}
+
+class _FlightInfoViewState extends State<FlightInfoView> {
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedCityId;
+  int? _selectedRating;
+  List<entities.City> _cities = [];
+  bool _isLoadingCities = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
+
+  Future<void> _loadCities() async {
+    setState(() {
+      _isLoadingCities = true;
+    });
+    try {
+      final getCities = GetIt.instance<GetCities>();
+      final cities = await getCities.execute();
+      setState(() {
+        _cities = cities;
+      });
+    } catch (_) {
+      // يمكن لاحقًا إظهار رسالة خطأ
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCities = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => FlightsController(GetIt.instance())..loadFlights(),
+      create: (context) =>
+          FlightsController(GetIt.instance())..loadFlights(),
       child: Consumer<FlightsController>(
         builder: (context, controller, child) {
           return Scaffold(
@@ -29,28 +77,29 @@ class FlightInfoView extends StatelessWidget {
               ],
             ),
             body: controller.isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : controller.errorMessage != null
-                    ? Center(child: Text('Error: ${controller.errorMessage}'))
+                    ? Center(
+                        child: Text('Error: ${controller.errorMessage}'),
+                      )
                     : RefreshIndicator(
                         onRefresh: () async {
-                          await controller.loadFlights();
+                          await controller.loadFlights(
+                            name: _searchController.text,
+                            cityId: _selectedCityId,
+                            rating: _selectedRating,
+                          );
                         },
                         child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Trip Summary
-                              _buildTripSummary(),
-                              
+                              // Search & Trip Summary
+                              _buildSearchSection(controller),
+
                               // Flight Details
                               _buildFlightDetails(controller.flights),
-                              
-                              // Travel Tips
-                              // _buildTravelTips(),
-                              
-                              // Action Buttons
-                              // _buildActionButtons(),
                             ],
                           ),
                         ),
@@ -61,57 +110,142 @@ class FlightInfoView extends StatelessWidget {
     );
   }
 
-  Widget _buildTripSummary() {
+  Widget _buildSearchSection(FlightsController controller) {
     return Container(
-      margin: EdgeInsets.all(16.0),
-      padding: EdgeInsets.all(16.0),
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16.0),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.1),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.2),
+            spreadRadius: 1,
+            blurRadius: 5,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: 'Search airlines...',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
+            ),
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) {
+              controller.loadFlights(
+                name: _searchController.text,
+                cityId: _selectedCityId,
+                rating: _selectedRating,
+              );
+            },
+          ),
+          const Divider(),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                'Trip to Riyadh',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Destination city',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 16),
+                        const SizedBox(width: 8),
+                        _isLoadingCities
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : DropdownButton<int>(
+                                value: _selectedCityId,
+                                hint: const Text('All cities'),
+                                underline: const SizedBox.shrink(),
+                                items: _cities
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c.id,
+                                        child: Text(c.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCityId = value;
+                                  });
+                                  controller.loadFlights(
+                                    name: _searchController.text,
+                                    cityId: _selectedCityId,
+                                    rating: _selectedRating,
+                                  );
+                                },
+                              ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
               Container(
-                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Confirmed',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
+                height: 40,
+                width: 1,
+                color: Colors.grey,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Rating (1-5)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.star,
+                            size: 16, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        DropdownButton<int>(
+                          value: _selectedRating,
+                          hint: const Text('Any rating'),
+                          underline: const SizedBox.shrink(),
+                          items: List.generate(
+                            5,
+                            (index) => DropdownMenuItem(
+                              value: index + 1,
+                              child: Text('${index + 1} Stars'),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRating = value;
+                            });
+                            controller.loadFlights(
+                              name: _searchController.text,
+                              cityId: _selectedCityId,
+                              rating: _selectedRating,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
-          SizedBox(height: 12),
-          Row(
-            children: [
-              Icon(Icons.calendar_today, size: 16, color: Colors.grey),
-              SizedBox(width: 8),
-              Text('Oct 25 - Oct 30, 2025 (6 days)'),
-            ],
-          ),
-          SizedBox(height: 8),
-          Row(
-            children: [
-              Icon(Icons.people, size: 16, color: Colors.grey),
-              SizedBox(width: 8),
-              Text('2 Adults, 1 Child'),
             ],
           ),
         ],
@@ -356,9 +490,15 @@ class _AirlineCard extends StatelessWidget {
                 ),
                 SizedBox(width: 8),
                 ElevatedButton(
-                  onPressed: () {
-                    // Show booking information
-                    _showBookingInfoDialog(context, flight);
+                  onPressed: () async{
+                    final Uri uri = Uri.parse(flight.url??'');
+
+                    if (!await launchUrl(
+                    uri,
+                    mode: LaunchMode.externalApplication, // فتح المتصفح الخارجي
+                    )) {
+                    throw 'لا يمكن فتح الرابط $flight.url';
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,

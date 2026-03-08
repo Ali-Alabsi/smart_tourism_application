@@ -19,13 +19,21 @@ class RestaurantsController extends ChangeNotifier {
   Restaurant? get selectedRestaurant => _selectedRestaurant;
   bool get isLoadingRestaurant => _isLoadingRestaurant;
 
-  Future<void> loadRestaurants() async {
+  Future<void> loadRestaurants({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _restaurants = await _restaurantsRepository.getRestaurants();
+      _restaurants = await _restaurantsRepository.getRestaurants(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       _errorMessage = e.toString();
       _restaurants = [];

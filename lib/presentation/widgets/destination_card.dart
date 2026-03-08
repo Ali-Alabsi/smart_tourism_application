@@ -3,104 +3,99 @@ import 'package:smart_tourism_application/core/entities/destination.dart';
 import 'package:smart_tourism_application/presentation/views/destinations/destination_detail_view.dart';
 
 class DestinationCard extends StatelessWidget {
-  final String imageUrl;
-  final String title;
-  final String location;
-  final double rating;
-  final double price;
-  final VoidCallback onTap;
+  final Destination destination;
 
   const DestinationCard({
-    required this.imageUrl,
-    required this.title,
-    required this.location,
-    required this.rating,
-    required this.price,
-    required this.onTap,
+    super.key,
+    required this.destination,
   });
 
   @override
   Widget build(BuildContext context) {
+    final ImageProvider imageProvider = destination.imageUrl.startsWith('http')
+        ? NetworkImage(destination.imageUrl)
+        : AssetImage(destination.imageUrl) as ImageProvider;
+
     return Card(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
+      elevation: 3,
       child: InkWell(
         onTap: () {
-          // Navigate to destination detail view
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => DestinationDetailView(
-                destination: Destination(
-                  id: '1',
-                  name: title,
-                  description: 'Beautiful destination with amazing experiences.',
-                  imageUrl: imageUrl,
-                  rating: rating,
-                  location: location,
-                  price: price,
-                  features: ['Beach', 'Culture', 'Adventure'],
-                ),
-              ),
+              builder: (context) =>
+                  DestinationDetailView(destination: destination),
             ),
           );
         },
         borderRadius: BorderRadius.circular(12.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
+            SizedBox(
+              height: 140,
+              width: double.infinity,
               child: Container(
                 decoration: BoxDecoration(
                   image: DecorationImage(
-                    image: AssetImage(imageUrl),
+                    image: imageProvider,
                     fit: BoxFit.cover,
                   ),
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(12.0)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(12.0)),
                 ),
               ),
             ),
             Padding(
-              padding: EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(12.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    title,
-                    style: TextStyle(
+                    destination.name,
+                    style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Row(
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
-                      SizedBox(width: 4),
-                      Text(
-                        location,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
+                      Icon(Icons.location_on,
+                          size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          destination.location,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: 4),
+                  const SizedBox(height: 4),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Row(
                         children: [
-                          Icon(Icons.star, size: 16, color: Colors.amber),
-                          SizedBox(width: 4),
-                          Text('$rating'),
+                          const Icon(Icons.star,
+                              size: 16, color: Colors.amber),
+                          const SizedBox(width: 4),
+                          Text('${destination.rating}'),
                         ],
                       ),
                       Text(
-                        '\$$price',
-                        style: TextStyle(
+                        destination.price > 0
+                            ? '\$${destination.price.toStringAsFixed(0)}'
+                            : '',
+                        style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.blue,

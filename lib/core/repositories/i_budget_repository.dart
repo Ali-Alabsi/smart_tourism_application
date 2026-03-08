@@ -33,4 +33,6 @@ abstract class IBudgetRepository {
   });
 
   Future<BudgetsResponce> getBudgets();
+
+  Future<void> deleteBudget(int id);
 }

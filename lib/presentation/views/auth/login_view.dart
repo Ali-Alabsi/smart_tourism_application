@@ -202,27 +202,27 @@ class _LoginViewState extends State<LoginView> {
                   SizedBox(height: 24),
 
                   // Verification button
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => VerificationView(
-                            email: _emailController.text.isEmpty 
-                                ? 'user@example.com' 
-                                : _emailController.text,
-                          ),
-                        ),
-                      );
-                    },
-                    child: Text(
-                      'Continue with Email Verification',
-                      style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                  // TextButton(
+                  //   onPressed: () {
+                  //     Navigator.push(
+                  //       context,
+                  //       MaterialPageRoute(
+                  //         builder: (context) => VerificationView(
+                  //           email: _emailController.text.isEmpty
+                  //               ? 'user@example.com'
+                  //               : _emailController.text,
+                  //         ),
+                  //       ),
+                  //     );
+                  //   },
+                  //   child: Text(
+                  //     'Continue with Email Verification',
+                  //     style: TextStyle(
+                  //       color: AppColors.primary,
+                  //       fontWeight: FontWeight.bold,
+                  //     ),
+                  //   ),
+                  // ),
                   SizedBox(height: 24),
 
                   // Footer

@@ -7,6 +7,7 @@ import 'package:smart_tourism_application/core/use_cases/budget/plan_trip.dart';
 import 'package:smart_tourism_application/core/use_cases/budget/get_budgets.dart';
 import 'package:smart_tourism_application/core/use_cases/city/get_cities.dart';
 import 'package:smart_tourism_application/data/models/budgets_responce_model.dart';
+import 'package:smart_tourism_application/core/use_cases/budget/delete_budget.dart';
 
 class BudgetController extends ChangeNotifier {
   final SetBudget _setBudget;
@@ -14,6 +15,7 @@ class BudgetController extends ChangeNotifier {
   final PlanTrip _planTrip;
   final GetBudgets _getBudgets;
   final GetCities _getCities;
+  final DeleteBudget _deleteBudget;
   
   bool _isLoading = false;
   String? _errorMessage;
@@ -32,6 +34,7 @@ class BudgetController extends ChangeNotifier {
     this._planTrip,
     this._getBudgets,
     this._getCities,
+    this._deleteBudget,
   );
 
   bool get isLoading => _isLoading;
@@ -171,6 +174,16 @@ class BudgetController extends ChangeNotifier {
       _budgetsResponse = null;
     } finally {
       _isBudgetsLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteBudget(int id) async {
+    try {
+      await _deleteBudget.execute(id);
+      await loadBudgets();
+    } catch (e) {
+      _budgetsError = e.toString();
       notifyListeners();
     }
   }

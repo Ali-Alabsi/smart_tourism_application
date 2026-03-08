@@ -34,21 +34,29 @@ class Restaurant {
   factory Restaurant.fromJson(Map<String, dynamic> json) {
     return Restaurant(
       id: json['id'] as int,
-      name: json['name'] as String,
-      address: json['address'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      city: json['city'] != null 
-          ? City.fromJson(json['city'] as Map<String, dynamic>) 
+      name: json['name']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      city: json['city'] != null
+          ? City.fromJson(json['city'] as Map<String, dynamic>)
           : null,
-      url: json['url'] as String?,
-      cuisineType: json['cuisine_type'] as String,
-      openingHours: OpeningHours.fromJson(json['opening_hours'] as Map<String, dynamic>),
-      isActive: json['is_active'] as bool,
-      images: (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      logo: json['logo'] as String,
-      foodsCount: json['foods_count'] as int,
-      foods: Foods.fromJson(json['foods'] as Map<String, dynamic>),
-      createdAt: json['created_at'] as String,
+      url: json['url']?.toString(),
+      cuisineType: json['cuisine_type']?.toString() ?? '',
+      openingHours: json['opening_hours'] != null
+          ? OpeningHours.fromJson(json['opening_hours'] as Map<String, dynamic>)
+          : OpeningHours(openingTime: '', closingTime: ''),
+      isActive: (json['is_active'] as bool?) ?? false,
+      images: (json['images'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      logo: json['logo']?.toString() ?? '',
+      foodsCount: (json['foods_count'] as int?) ?? 0,
+      foods: json['foods'] != null
+          ? Foods.fromJson(json['foods'] as Map<String, dynamic>)
+          : Foods(data: const [], meta: FoodsMeta(count: 0)),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -83,8 +91,8 @@ class Location {
 
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
-      latitude: json['latitude'] as String,
-      longitude: json['longitude'] as String,
+      latitude: json['latitude']?.toString() ?? '',
+      longitude: json['longitude']?.toString() ?? '',
     );
   }
 
@@ -114,10 +122,12 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) {
     return City(
       id: json['id'] as int,
-      name: json['name'] as String,
-      country: json['country'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      createdAt: json['created_at'] as String,
+      name: json['name']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -143,8 +153,8 @@ class OpeningHours {
 
   factory OpeningHours.fromJson(Map<String, dynamic> json) {
     return OpeningHours(
-      openingTime: json['opening_time'] as String,
-      closingTime: json['closing_time'] as String,
+      openingTime: json['opening_time']?.toString() ?? '',
+      closingTime: json['closing_time']?.toString() ?? '',
     );
   }
 
@@ -167,10 +177,12 @@ class Foods {
 
   factory Foods.fromJson(Map<String, dynamic> json) {
     return Foods(
-      data: (json['data'] as List<dynamic>)
+      data: (json['data'] as List<dynamic>? ?? const [])
           .map((e) => Food.fromJson(e as Map<String, dynamic>))
           .toList(),
-      meta: FoodsMeta.fromJson(json['meta'] as Map<String, dynamic>),
+      meta: json['meta'] != null
+          ? FoodsMeta.fromJson(json['meta'] as Map<String, dynamic>)
+          : FoodsMeta(count: 0),
     );
   }
 
@@ -212,16 +224,20 @@ class Food {
   factory Food.fromJson(Map<String, dynamic> json) {
     return Food(
       id: json['id'] as int,
-      name: json['name'] as String,
+      name: json['name']?.toString() ?? '',
       restaurantId: json['restaurant_id'] as int,
-      type: json['type'] as String,
-      priceRange: PriceRange.fromJson(json['price_range'] as Map<String, dynamic>),
-      description: json['description'] as String,
-      isAvailable: json['is_available'] as bool,
-      images: (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      mainImage: json['main_image'] as String,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      type: json['type']?.toString() ?? '',
+      priceRange: json['price_range'] != null
+          ? PriceRange.fromJson(json['price_range'] as Map<String, dynamic>)
+          : PriceRange(from: '', to: ''),
+      description: json['description']?.toString() ?? '',
+      isAvailable: (json['is_available'] as bool?) ?? false,
+      images: (json['images'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      mainImage: json['main_image']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 
@@ -253,8 +269,8 @@ class PriceRange {
 
   factory PriceRange.fromJson(Map<String, dynamic> json) {
     return PriceRange(
-      from: json['from'] as String,
-      to: json['to'] as String,
+      from: json['from']?.toString() ?? '',
+      to: json['to']?.toString() ?? '',
     );
   }
 
@@ -275,7 +291,7 @@ class FoodsMeta {
 
   factory FoodsMeta.fromJson(Map<String, dynamic> json) {
     return FoodsMeta(
-      count: json['count'] as int,
+      count: (json['count'] as int?) ?? 0,
     );
   }
 

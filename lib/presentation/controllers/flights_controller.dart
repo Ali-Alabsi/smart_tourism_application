@@ -19,13 +19,21 @@ class FlightsController extends ChangeNotifier {
   Flight? get selectedFlight => _selectedFlight;
   bool get isLoadingFlight => _isLoadingFlight;
 
-  Future<void> loadFlights() async {
+  Future<void> loadFlights({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _flights = await _flightsRepository.getFlights();
+      _flights = await _flightsRepository.getFlights(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       _errorMessage = e.toString();
       _flights = [];

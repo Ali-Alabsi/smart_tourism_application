@@ -36,24 +36,28 @@ class Flight {
   factory Flight.fromJson(Map<String, dynamic> json) {
     return Flight(
       id: json['id'] as int,
-      name: json['name'] as String,
-      address: json['address'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      city: json['city'] != null 
-          ? City.fromJson(json['city'] as Map<String, dynamic>) 
+      name: json['name']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      city: json['city'] != null
+          ? City.fromJson(json['city'] as Map<String, dynamic>)
           : null,
-      url: json['url'] as String?,
-      details: json['details'] as String,
-      isActive: json['is_active'] as bool,
-      images: (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      logo: json['logo'] as String,
-      plainTravelsCount: json['plain_travels_count'] as int,
-      plainTravels: (json['plain_travels'] as List<dynamic>)
+      url: json['url']?.toString(),
+      details: json['details']?.toString() ?? '',
+      isActive: (json['is_active'] as bool?) ?? false,
+      images: (json['images'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      logo: json['logo']?.toString() ?? '',
+      plainTravelsCount: (json['plain_travels_count'] as int?) ?? 0,
+      plainTravels: (json['plain_travels'] as List<dynamic>? ?? const [])
           .map((e) => PlainTravel.fromJson(e as Map<String, dynamic>))
           .toList(),
-      averageRating: json['average_rating'] as double?,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      averageRating: (json['average_rating'] as num?)?.toDouble(),
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 
@@ -89,8 +93,8 @@ class Location {
 
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
-      latitude: json['latitude'] as String,
-      longitude: json['longitude'] as String,
+      latitude: json['latitude']?.toString() ?? '',
+      longitude: json['longitude']?.toString() ?? '',
     );
   }
 
@@ -120,10 +124,12 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) {
     return City(
       id: json['id'] as int,
-      name: json['name'] as String,
-      country: json['country'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      createdAt: json['created_at'] as String,
+      name: json['name']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -171,13 +177,13 @@ class PlainTravel {
       plainId: json['plain_id'] as int,
       fromCityId: json['from_city_id'] as int,
       toCityId: json['to_city_id'] as int,
-      fromPrice: json['from_price'] as String,
-      toPrice: json['to_price'] as String,
-      durationMinutes: json['duration_minutes'] as int,
-      departureTime: json['departure_time'] as String,
-      arrivalTime: json['arrival_time'] as String,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      fromPrice: json['from_price']?.toString() ?? '',
+      toPrice: json['to_price']?.toString() ?? '',
+      durationMinutes: (json['duration_minutes'] as int?) ?? 0,
+      departureTime: json['departure_time']?.toString() ?? '',
+      arrivalTime: json['arrival_time']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 

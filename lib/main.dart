@@ -55,10 +55,22 @@ class MyApp extends StatelessWidget {
           create: (_) => BookingController(getIt()),
         ),
         ChangeNotifierProvider(
-          create: (_) => BudgetController(getIt(), getIt(), getIt(), getIt(), getIt()),
+          create: (_) => BudgetController(
+            getIt(),
+            getIt(),
+            getIt(),
+            getIt(),
+            getIt(),
+            getIt(),
+          ),
         ),
         ChangeNotifierProvider(
-          create: (_) => DestinationsController(),
+          create: (_) => DestinationsController(
+            getIt(), // IHotelsRepository
+            getIt(), // IRestaurantsRepository
+            getIt(), // IFlightsRepository
+            getIt(), // IActivitiesRepository
+          ),
         ),
         ChangeNotifierProvider(
           create: (_) => RatingsController(getIt()),
@@ -89,6 +101,7 @@ class MyApp extends StatelessWidget {
           ),
           '/home': (context) => HomeView(),
           '/register': (context) => RegisterView(),
+          '/splashScreen': (context) => SplashScreen(),
           '/hotels': (context) => const HotelListView(),
           '/activities': (context) => const ActivitiesListView(),
           '/flights': (context) => const FlightInfoView(),
@@ -100,7 +113,7 @@ class MyApp extends StatelessWidget {
           '/budget-list': (context) => BudgetListView(),
           '/profile': (context) => ProfileView(),
         },
-        // home: SplashScreen(),
+        home: SplashScreen(),
       ),
     );
   }

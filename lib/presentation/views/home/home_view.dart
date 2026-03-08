@@ -10,12 +10,12 @@ class HomeView extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         leading: Image.asset(
-          'assets/images/logo.png', // Ensure you have a logo image in assets
+          'assets/images/logo.png',
           height: 40,
           width: 40,
         ),
         title: Text(
-          'Inside the Kindom', // Note: Keep the spelling as shown
+          'Inside the Kindom',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
@@ -233,12 +233,12 @@ class HomeView extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 12),
-                        ElevatedButton(
-                          onPressed: () {
-                            // Handle book now
-                          },
-                          child: Text('Book Now'),
-                        ),
+                        // ElevatedButton(
+                        //   onPressed: () {
+                        //     // Handle book now
+                        //   },
+                        //   child: Text('Book Now'),
+                        // ),
                       ],
                     ),
                   ),

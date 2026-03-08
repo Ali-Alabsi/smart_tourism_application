@@ -8,51 +8,106 @@ import 'package:get_it/get_it.dart';
 import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dart';
 import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:smart_tourism_application/core/entities/city.dart' as entities;
+import 'package:smart_tourism_application/core/use_cases/city/get_cities.dart';
 
-class ActivitiesListView extends StatelessWidget {
+class ActivitiesListView extends StatefulWidget {
   const ActivitiesListView({super.key});
+
+  @override
+  State<ActivitiesListView> createState() => _ActivitiesListViewState();
+}
+
+class _ActivitiesListViewState extends State<ActivitiesListView> {
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedCityId;
+  int? _selectedRating;
+  List<entities.City> _cities = [];
+  bool _isLoadingCities = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
+
+  Future<void> _loadCities() async {
+    setState(() {
+      _isLoadingCities = true;
+    });
+    try {
+      final getCities = GetIt.instance<GetCities>();
+      final cities = await getCities.execute();
+      setState(() {
+        _cities = cities;
+      });
+    } catch (_) {
+      // يمكن لاحقًا إظهار رسالة خطأ
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCities = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => ActivitiesController(GetIt.instance())..loadActivities(),
+      create: (context) =>
+          ActivitiesController(GetIt.instance())..loadActivities(),
       child: Consumer<ActivitiesController>(
         builder: (context, controller, child) {
           return Scaffold(
             appBar: CustomAppBar(
               title: 'Activities & Events',
               actions: [
-                IconButton(
-                  onPressed: () {
-                    // Handle notifications
-                  },
-                  icon: Icon(Icons.notifications),
-                ),
+                // IconButton(
+                //   onPressed: () {
+                //     // Handle notifications
+                //   },
+                //   icon: Icon(Icons.notifications),
+                // ),
               ],
             ),
             body: controller.isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : controller.errorMessage != null
-                    ? Center(child: Text('Error: ${controller.errorMessage}'))
+                    ? Center(
+                        child: Text('Error: ${controller.errorMessage}'),
+                      )
                     : RefreshIndicator(
                         onRefresh: () async {
-                          await controller.loadActivities();
+                          await controller.loadActivities(
+                            name: _searchController.text,
+                            cityId: _selectedCityId,
+                            rating: _selectedRating,
+                          );
                         },
                         child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Search and Filter Section
-                              _buildSearchAndFilterSection(),
-                              
+                              _buildSearchAndFilterSection(controller),
+
                               // Categories Section
-                              _buildCategoriesSection(),
-                              
+                              // _buildCategoriesSection(),
+
                               // Upcoming Events Section
                               _buildUpcomingEventsSection(controller.activities),
-                              
+
                               // Popular Activities Section
-                              _buildPopularActivitiesSection(controller.activities),
+                              _buildPopularActivitiesSection(
+                                  controller.activities),
                             ],
                           ),
                         ),
@@ -63,10 +118,10 @@ class ActivitiesListView extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchAndFilterSection() {
+  Widget _buildSearchAndFilterSection(ActivitiesController controller) {
     return Container(
-      margin: EdgeInsets.all(16.0),
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
@@ -75,31 +130,130 @@ class ActivitiesListView extends StatelessWidget {
             color: Colors.grey.withOpacity(0.2),
             spreadRadius: 1,
             blurRadius: 5,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Search activities...',
-                prefixIcon: Icon(Icons.search),
-                border: InputBorder.none,
-              ),
+          TextField(
+            controller: _searchController,
+            decoration: const InputDecoration(
+              hintText: 'Search activities...',
+              prefixIcon: Icon(Icons.search),
+              border: InputBorder.none,
             ),
-          ),
-          Container(
-            height: 24,
-            width: 1,
-            color: Colors.grey,
-          ),
-          IconButton(
-            onPressed: () {
-              // Handle filter
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) {
+              controller.loadActivities(
+                name: _searchController.text,
+                cityId: _selectedCityId,
+                rating: _selectedRating,
+              );
             },
-            icon: Icon(Icons.filter_list),
+          ),
+          const Divider(),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'City',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on, size: 16),
+                        const SizedBox(width: 8),
+                        _isLoadingCities
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : DropdownButton<int>(
+                                value: _selectedCityId,
+                                hint: const Text('All cities'),
+                                underline: const SizedBox.shrink(),
+                                items: _cities
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c.id,
+                                        child: Text(c.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCityId = value;
+                                  });
+                                  controller.loadActivities(
+                                    name: _searchController.text,
+                                    cityId: _selectedCityId,
+                                    rating: _selectedRating,
+                                  );
+                                },
+                              ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                height: 40,
+                width: 1,
+                color: Colors.grey,
+              ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Rating (1-5)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        const Icon(Icons.star,
+                            size: 16, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        DropdownButton<int>(
+                          value: _selectedRating,
+                          hint: const Text('Any rating'),
+                          underline: const SizedBox.shrink(),
+                          items: List.generate(
+                            5,
+                            (index) => DropdownMenuItem(
+                              value: index + 1,
+                              child: Text('${index + 1} Stars'),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRating = value;
+                            });
+                            controller.loadActivities(
+                              name: _searchController.text,
+                              cityId: _selectedCityId,
+                              rating: _selectedRating,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -184,12 +338,7 @@ class ActivitiesListView extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              TextButton(
-                onPressed: () {
-                  // Handle view all
-                },
-                child: Text('View All'),
-              ),
+
             ],
           ),
           SizedBox(height: 12),
@@ -558,12 +707,12 @@ class EventDetailView extends StatelessWidget {
       appBar: CustomAppBar(
         title: event['title'],
         actions: [
-          IconButton(
-            onPressed: () {
-              // Handle sharing
-            },
-            icon: Icon(Icons.share),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     // Handle sharing
+          //   },
+          //   icon: Icon(Icons.share),
+          // ),
         ],
       ),
       body: SingleChildScrollView(
@@ -695,20 +844,20 @@ class EventDetailView extends StatelessWidget {
       padding: EdgeInsets.all(16.0),
       child: Row(
         children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () {
-                // Handle favorite
-              },
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.all(16.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Icon(Icons.favorite_border, color: AppColors.primary),
-            ),
-          ),
+          // Expanded(
+          //   child: OutlinedButton(
+          //     onPressed: () {
+          //       // Handle favorite
+          //     },
+          //     style: OutlinedButton.styleFrom(
+          //       padding: EdgeInsets.all(16.0),
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(8),
+          //       ),
+          //     ),
+          //     child: Icon(Icons.favorite_border, color: AppColors.primary),
+          //   ),
+          // ),
           SizedBox(width: 16),
           Expanded(
             flex: 2,
@@ -837,7 +986,7 @@ class ActivityDetailView extends StatelessWidget {
                                 _buildReviews(),
                                 
                                 // Action Buttons
-                                _buildActionButtons(context, controller.selectedActivity!),
+                                // _buildActionButtons(context, controller.selectedActivity!),
                               ],
                             ),
                           )

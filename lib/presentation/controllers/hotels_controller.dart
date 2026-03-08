@@ -19,15 +19,24 @@ class HotelsController extends ChangeNotifier {
   Hotel? get selectedHotel => _selectedHotel;
   bool get isLoadingHotel => _isLoadingHotel;
 
-  Future<void> loadHotels() async {
+  Future<void> loadHotels({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _hotels = await _hotelsRepository.getHotels();
+      _hotels = await _hotelsRepository.getHotels(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       _errorMessage = e.toString();
+      print('Error loading hotels: $e');
       _hotels = [];
     } finally {
       _isLoading = false;

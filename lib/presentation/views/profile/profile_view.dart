@@ -111,7 +111,7 @@ class _ProfileViewState extends State<ProfileView> {
                 SizedBox(height: 24),
                 
                 // Privacy Controls Section
-                _buildPrivacyControlsSection(),
+                // _buildPrivacyControlsSection(),
                 
                 SizedBox(height: 24),
                 

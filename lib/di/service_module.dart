@@ -12,6 +12,7 @@ import 'package:smart_tourism_application/core/use_cases/budget/set_budget.dart'
 import 'package:smart_tourism_application/core/use_cases/budget/split_group_budget.dart';
 import 'package:smart_tourism_application/core/use_cases/budget/plan_trip.dart';
 import 'package:smart_tourism_application/core/use_cases/budget/get_budgets.dart';
+import 'package:smart_tourism_application/core/use_cases/budget/delete_budget.dart';
 import 'package:smart_tourism_application/core/use_cases/rating/submit_rating.dart';
 import 'package:smart_tourism_application/core/use_cases/city/get_cities.dart';
 import 'package:smart_tourism_application/services/api/auth_service.dart';
@@ -39,6 +40,7 @@ class ServiceModule {
     getIt.registerLazySingleton(() => SplitGroupBudget(getIt()));
     getIt.registerLazySingleton(() => PlanTrip(getIt()));
     getIt.registerLazySingleton(() => GetBudgets(getIt()));
+    getIt.registerLazySingleton(() => DeleteBudget(getIt()));
     getIt.registerLazySingleton(() => SubmitRating(getIt()));
     getIt.registerLazySingleton(() => GetCities(getIt()));
 

@@ -9,46 +9,102 @@ import 'package:smart_tourism_application/presentation/widgets/rating_dialog.dar
 import 'package:smart_tourism_application/presentation/controllers/ratings_controller.dart';
 import 'package:smart_tourism_application/presentation/widgets/main_bottom_nav_bar.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:smart_tourism_application/core/entities/city.dart' as entities;
+import 'package:smart_tourism_application/core/use_cases/city/get_cities.dart';
 
-class HotelListView extends StatelessWidget {
+class HotelListView extends StatefulWidget {
   const HotelListView({super.key});
+
+  @override
+  State<HotelListView> createState() => _HotelListViewState();
+}
+
+class _HotelListViewState extends State<HotelListView> {
+  final TextEditingController _searchController = TextEditingController();
+  int? _selectedCityId;
+  int? _selectedRating;
+  List<entities.City> _cities = [];
+  bool _isLoadingCities = false;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCities();
+  }
+
+  Future<void> _loadCities() async {
+    setState(() {
+      _isLoadingCities = true;
+    });
+    try {
+      final getCities = GetIt.instance<GetCities>();
+      final cities = await getCities.execute();
+      setState(() {
+        _cities = cities;
+      });
+    } catch (_) {
+      // يمكن لاحقًا إظهار رسالة خطأ للمستخدم
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingCities = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
-      create: (context) => HotelsController(GetIt.instance())..loadHotels(),
+      create: (context) =>
+          HotelsController(GetIt.instance())..loadHotels(),
       child: Consumer<HotelsController>(
         builder: (context, controller, child) {
           return Scaffold(
             appBar: CustomAppBar(
               title: 'Hotels',
               actions: [
-                IconButton(
-                  onPressed: () {
-                    // Handle notifications
-                  },
-                  icon: Icon(Icons.notifications),
-                ),
+                // IconButton(
+                //   onPressed: () {
+                //     // Handle notifications
+                //   },
+                //   icon: Icon(Icons.notifications),
+                // ),
               ],
             ),
             body: controller.isLoading
-                ? Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator())
                 : controller.errorMessage != null
-                    ? Center(child: Text('Error: ${controller.errorMessage}'))
+                    ? Center(
+                        child: Text(
+                          'Error: ${controller.errorMessage}',
+                        ),
+                      )
                     : RefreshIndicator(
                         onRefresh: () async {
-                          await controller.loadHotels();
+                          await controller.loadHotels(
+                            name: _searchController.text,
+                            cityId: _selectedCityId,
+                            rating: _selectedRating,
+                          );
                         },
                         child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               // Search Section
-                              _buildSearchSection(),
-                              
+                              _buildSearchSection(controller),
+
                               // Filter Section
                               _buildFilterSection(controller.hotels.length),
-                              
+
                               // Hotel Listings
                               _buildHotelListings(controller.hotels),
                             ],
@@ -80,10 +136,10 @@ class HotelListView extends StatelessWidget {
     );
   }
 
-  Widget _buildSearchSection() {
+  Widget _buildSearchSection(HotelsController controller) {
     return Container(
-      margin: EdgeInsets.all(16.0),
-      padding: EdgeInsets.symmetric(horizontal: 16.0),
+      margin: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.0),
@@ -99,20 +155,29 @@ class HotelListView extends StatelessWidget {
       child: Column(
         children: [
           TextField(
+            controller: _searchController,
             decoration: InputDecoration(
               hintText: 'Search hotels...',
-              prefixIcon: Icon(Icons.search),
+              prefixIcon: const Icon(Icons.search),
               border: InputBorder.none,
             ),
+            textInputAction: TextInputAction.search,
+            onSubmitted: (_) {
+              controller.loadHotels(
+                name: _searchController.text,
+                cityId: _selectedCityId,
+                rating: _selectedRating,
+              );
+            },
           ),
-          Divider(),
+          const Divider(),
           Row(
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'Location',
                       style: TextStyle(
                         fontSize: 12,
@@ -121,9 +186,37 @@ class HotelListView extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.location_on, size: 16),
-                        SizedBox(width: 8),
-                        Text('Riyadh, Saudi Arabia'),
+                        const Icon(Icons.location_on, size: 16),
+                        const SizedBox(width: 8),
+                        _isLoadingCities
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : DropdownButton<int>(
+                                value: _selectedCityId,
+                                hint: const Text('All cities'),
+                                underline: const SizedBox.shrink(),
+                                items: _cities
+                                    .map(
+                                      (c) => DropdownMenuItem(
+                                        value: c.id,
+                                        child: Text(c.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  setState(() {
+                                    _selectedCityId = value;
+                                  });
+                                  controller.loadHotels(
+                                    name: _searchController.text,
+                                    cityId: _selectedCityId,
+                                    rating: _selectedRating,
+                                  );
+                                },
+                              ),
                       ],
                     ),
                   ],
@@ -138,8 +231,8 @@ class HotelListView extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Rating',
+                    const Text(
+                      'Rating (1-5)',
                       style: TextStyle(
                         fontSize: 12,
                         color: Colors.grey,
@@ -147,9 +240,31 @@ class HotelListView extends StatelessWidget {
                     ),
                     Row(
                       children: [
-                        Icon(Icons.star, size: 16, color: Colors.amber),
-                        SizedBox(width: 8),
-                        Text('4.0+ Stars'),
+                        const Icon(Icons.star,
+                            size: 16, color: Colors.amber),
+                        const SizedBox(width: 8),
+                        DropdownButton<int>(
+                          value: _selectedRating,
+                          hint: const Text('Any rating'),
+                          underline: const SizedBox.shrink(),
+                          items: List.generate(
+                            5,
+                            (index) => DropdownMenuItem(
+                              value: index + 1,
+                              child: Text('${index + 1} Stars'),
+                            ),
+                          ),
+                          onChanged: (value) {
+                            setState(() {
+                              _selectedRating = value;
+                            });
+                            controller.loadHotels(
+                              name: _searchController.text,
+                              cityId: _selectedCityId,
+                              rating: _selectedRating,
+                            );
+                          },
+                        ),
                       ],
                     ),
                   ],

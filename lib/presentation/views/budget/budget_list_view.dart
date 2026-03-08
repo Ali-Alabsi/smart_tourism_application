@@ -431,7 +431,29 @@ class __BudgetCardState extends State<_BudgetCard> {
                 children: [
                   IconButton(
                     icon: Icon(Icons.delete, color: Colors.red),
-                    onPressed: widget.onDelete,
+                    onPressed: () async {
+                      final budgetController = Provider.of<BudgetController>(
+                        context,
+                        listen: false,
+                      );
+
+                      final budgetId = widget.budgetItem.budgetData?.id;
+
+                      if (budgetId != null) {
+                        await budgetController.deleteBudget(budgetId);
+                      }
+
+                      if (!mounted) return;
+
+                      widget.onDelete();
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Budget deleted successfully'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

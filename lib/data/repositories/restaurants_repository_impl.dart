@@ -8,9 +8,17 @@ class RestaurantsRepositoryImpl implements IRestaurantsRepository {
   RestaurantsRepositoryImpl(this._restaurantsApi);
 
   @override
-  Future<List<Restaurant>> getRestaurants() async {
+  Future<List<Restaurant>> getRestaurants({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      return await _restaurantsApi.getRestaurants();
+      return await _restaurantsApi.getRestaurants(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       throw Exception('Failed to get restaurants: $e');
     }

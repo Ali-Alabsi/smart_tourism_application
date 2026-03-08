@@ -56,14 +56,16 @@ class Event {
 
   factory Event.fromJson(Map<String, dynamic> json) {
     return Event(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      description: json['description'] as String,
-      imageUrl: json['imageUrl'] as String,
-      date: DateTime.parse(json['date'] as String),
-      location: json['location'] as String,
-      price: (json['price'] as num).toDouble(),
-      maxParticipants: json['maxParticipants'] as int,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      date: json['date'] != null
+          ? DateTime.tryParse(json['date'].toString()) ?? DateTime.now()
+          : DateTime.now(),
+      location: json['location']?.toString() ?? '',
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
+      maxParticipants: (json['maxParticipants'] as int?) ?? 0,
     );
   }
 

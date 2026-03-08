@@ -19,13 +19,21 @@ class ActivitiesController extends ChangeNotifier {
   Activity? get selectedActivity => _selectedActivity;
   bool get isLoadingActivity => _isLoadingActivity;
 
-  Future<void> loadActivities() async {
+  Future<void> loadActivities({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      _activities = await _activitiesRepository.getActivities();
+      _activities = await _activitiesRepository.getActivities(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       _errorMessage = e.toString();
       _activities = [];

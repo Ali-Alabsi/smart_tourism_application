@@ -8,9 +8,17 @@ class HotelsRepositoryImpl implements IHotelsRepository {
   HotelsRepositoryImpl(this._hotelsApi);
 
   @override
-  Future<List<Hotel>> getHotels() async {
+  Future<List<Hotel>> getHotels({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      return await _hotelsApi.getHotels();
+      return await _hotelsApi.getHotels(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       throw Exception('Failed to get hotels: $e');
     }

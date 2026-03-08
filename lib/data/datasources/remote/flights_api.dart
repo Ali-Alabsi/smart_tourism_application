@@ -7,9 +7,20 @@ class FlightsApi {
 
   FlightsApi(this._dioClient);
 
-  Future<List<Flight>> getFlights() async {
+  Future<List<Flight>> getFlights({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      final response = await _dioClient.get('/api/plains');
+      final response = await _dioClient.get(
+        '/api/plains',
+        queryParameters: {
+          if (name != null && name.isNotEmpty) 'name': name,
+          if (cityId != null) 'city_id': cityId,
+          if (rating != null) 'rating': rating,
+        },
+      );
       
       if (response.statusCode == 200) {
         final data = response.data;

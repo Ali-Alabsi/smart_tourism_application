@@ -32,20 +32,34 @@ class Hotel {
   factory Hotel.fromJson(Map<String, dynamic> json) {
     return Hotel(
       id: json['id'] as int,
-      name: json['name'] as String,
-      address: json['address'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      city: City.fromJson(json['city'] as Map<String, dynamic>),
-      url: json['url'] as String?,
-      priceRange: PriceRange.fromJson(json['price_range'] as Map<String, dynamic>),
-      details: json['details'] as String,
-      isActive: json['is_active'] as bool,
-      images: (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      featuredImage: json['featured_image'] as String,
-      services: (json['services'] as List<dynamic>)
+      name: json['name']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      city: json['city'] != null
+          ? City.fromJson(json['city'] as Map<String, dynamic>)
+          : City(
+              id: 0,
+              name: '',
+              country: '',
+              location: Location(latitude: '', longitude: ''),
+              createdAt: '',
+            ),
+      url: json['url']?.toString(),
+      priceRange: json['price_range'] != null
+          ? PriceRange.fromJson(json['price_range'] as Map<String, dynamic>)
+          : PriceRange(min: 0, max: 0),
+      details: json['details']?.toString() ?? '',
+      isActive: (json['is_active'] as bool?) ?? false,
+      images: (json['images'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      featuredImage: json['featured_image']?.toString() ?? '',
+      services: (json['services'] as List<dynamic>? ?? const [])
           .map((e) => Service.fromJson(e as Map<String, dynamic>))
           .toList(),
-      createdAt: json['created_at'] as String,
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -79,8 +93,8 @@ class Location {
 
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
-      latitude: json['latitude'] as String,
-      longitude: json['longitude'] as String,
+      latitude: json['latitude']?.toString() ?? '',
+      longitude: json['longitude']?.toString() ?? '',
     );
   }
 
@@ -110,10 +124,12 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) {
     return City(
       id: json['id'] as int,
-      name: json['name'] as String,
-      country: json['country'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      createdAt: json['created_at'] as String,
+      name: json['name']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -139,8 +155,8 @@ class PriceRange {
 
   factory PriceRange.fromJson(Map<String, dynamic> json) {
     return PriceRange(
-      min: json['min'] as int,
-      max: json['max'] as int,
+      min: (json['min'] as int?) ?? 0,
+      max: (json['max'] as int?) ?? 0,
     );
   }
 
@@ -174,12 +190,12 @@ class Service {
   factory Service.fromJson(Map<String, dynamic> json) {
     return Service(
       id: json['id'] as int,
-      name: json['name'] as String,
-      icon: json['icon'] as String,
-      description: json['description'] as String,
-      isActive: json['is_active'] as bool,
-      createdAt: json['created_at'] as String,
-      updatedAt: json['updated_at'] as String,
+      name: json['name']?.toString() ?? '',
+      icon: json['icon']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
+      isActive: (json['is_active'] as bool?) ?? false,
+      createdAt: json['created_at']?.toString() ?? '',
+      updatedAt: json['updated_at']?.toString() ?? '',
     );
   }
 

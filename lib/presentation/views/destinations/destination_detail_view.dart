@@ -8,18 +8,23 @@ class DestinationDetailView extends StatelessWidget {
 
   const DestinationDetailView({super.key, required this.destination});
 
+  BuildContext get _scaffoldContext => _internalScaffoldKey.currentContext!;
+  static final GlobalKey<ScaffoldMessengerState> _internalScaffoldKey =
+      GlobalKey<ScaffoldMessengerState>();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _internalScaffoldKey,
       appBar: CustomAppBar(
         title: destination.name,
         actions: [
-          IconButton(
-            onPressed: () {
-              // Handle favorites
-            },
-            icon: Icon(Icons.favorite_border),
-          ),
+          // IconButton(
+          //   onPressed: () {
+          //     // Handle favorites
+          //   },
+          //   icon: Icon(Icons.favorite_border),
+          // ),
         ],
       ),
       body: SingleChildScrollView(
@@ -222,50 +227,60 @@ class DestinationDetailView extends StatelessWidget {
       margin: EdgeInsets.all(16.0),
       child: Column(
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                // Handle book now
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Book Now',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () {
-                // Handle add to itinerary
-              },
-              style: OutlinedButton.styleFrom(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                'Add to Itinerary',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: ElevatedButton(
+          //     onPressed: () {
+          //       ScaffoldMessenger.of(_scaffoldContext).showSnackBar(
+          //         SnackBar(
+          //           content: Text('Booking for destinations is coming soon.'),
+          //           backgroundColor: AppColors.primary,
+          //         ),
+          //       );
+          //     },
+          //     style: ElevatedButton.styleFrom(
+          //       backgroundColor: AppColors.primary,
+          //       padding: EdgeInsets.symmetric(vertical: 16),
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(12),
+          //       ),
+          //     ),
+          //     child: Text(
+          //       'Book Now',
+          //       style: TextStyle(
+          //         fontSize: 16,
+          //         fontWeight: FontWeight.bold,
+          //       ),
+          //     ),
+          //   ),
+          // ),
+          // SizedBox(height: 12),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: OutlinedButton(
+          //     onPressed: () {
+          //       ScaffoldMessenger.of(_scaffoldContext).showSnackBar(
+          //         SnackBar(
+          //           content: Text('Itinerary feature is coming soon.'),
+          //           backgroundColor: AppColors.primary,
+          //         ),
+          //       );
+          //     },
+          //     style: OutlinedButton.styleFrom(
+          //       padding: EdgeInsets.symmetric(vertical: 16),
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(12),
+          //       ),
+          //     ),
+          //     child: Text(
+          //       'Add to Itinerary',
+          //       style: TextStyle(
+          //         fontSize: 16,
+          //         fontWeight: FontWeight.bold,
+          //       ),
+          //     ),
+          //   ),
+          // ),
         ],
       ),
     );

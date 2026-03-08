@@ -8,9 +8,17 @@ class FlightsRepositoryImpl implements IFlightsRepository {
   FlightsRepositoryImpl(this._flightsApi);
 
   @override
-  Future<List<Flight>> getFlights() async {
+  Future<List<Flight>> getFlights({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      return await _flightsApi.getFlights();
+      return await _flightsApi.getFlights(
+        name: name,
+        cityId: cityId,
+        rating: rating,
+      );
     } catch (e) {
       throw Exception('Failed to get flights: $e');
     }

@@ -7,9 +7,20 @@ class HotelsApi {
 
   HotelsApi(this._dioClient);
 
-  Future<List<Hotel>> getHotels() async {
+  Future<List<Hotel>> getHotels({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      final response = await _dioClient.get('/api/hotels');
+      final response = await _dioClient.get(
+        '/api/hotels',
+        queryParameters: {
+          if (name != null && name.isNotEmpty) 'name': name,
+          if (cityId != null) 'city_id': cityId,
+          if (rating != null) 'rating': rating,
+        },
+      );
       
       if (response.statusCode == 200) {
         final data = response.data;

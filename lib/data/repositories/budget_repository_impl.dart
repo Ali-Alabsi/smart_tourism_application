@@ -141,5 +141,13 @@ class BudgetRepositoryImpl implements IBudgetRepository {
       throw Exception('Failed to get budgets: $e');
     }
   }
-}
 
+  @override
+  Future<void> deleteBudget(int id) async {
+    try {
+      await _budgetApi.deleteBudget(id);
+    } catch (e) {
+      throw Exception('Failed to delete budget: $e');
+    }
+  }
+}

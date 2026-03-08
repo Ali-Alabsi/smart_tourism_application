@@ -9,8 +9,6 @@ class BudgetApi {
 
   BudgetApi(this._sharedPrefs, this._dioClient);
 
-
-
   Future<Map<String, dynamic>> planTrip({
     required int totalBudget,
     required int peopleCount,
@@ -140,5 +138,29 @@ class BudgetApi {
       throw Exception('Failed to load budgets: $e');
     }
   }
-}
 
+  Future<void> deleteBudget(int id) async {
+    try {
+      final response = await _dioClient.delete('/api/budgets/$id');
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        // Successfully deleted, nothing to return
+        return;
+      } else {
+        throw Exception('Failed to delete budget: ${response.statusMessage}');
+      }
+    } on DioException catch (e) {
+      if (e.response != null) {
+        final errorData = e.response?.data;
+        if (errorData is Map && errorData.containsKey('message')) {
+          throw Exception('Failed to delete budget: ${errorData['message']}');
+        }
+        throw Exception('Failed to delete budget: ${e.response?.data ?? e.message}');
+      } else {
+        throw Exception('Failed to delete budget: ${e.message ?? "Unknown error"}');
+      }
+    } catch (e) {
+      throw Exception('Failed to delete budget: $e');
+    }
+  }
+}

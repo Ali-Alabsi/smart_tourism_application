@@ -7,9 +7,20 @@ class ActivitiesApi {
 
   ActivitiesApi(this._dioClient);
 
-  Future<List<Activity>> getActivities() async {
+  Future<List<Activity>> getActivities({
+    String? name,
+    int? cityId,
+    int? rating,
+  }) async {
     try {
-      final response = await _dioClient.get('/api/activities');
+      final response = await _dioClient.get(
+        '/api/activities',
+        queryParameters: {
+          if (name != null && name.isNotEmpty) 'name': name,
+          if (cityId != null) 'city_id': cityId,
+          if (rating != null) 'rating': rating,
+        },
+      );
       
       if (response.statusCode == 200) {
         final data = response.data;

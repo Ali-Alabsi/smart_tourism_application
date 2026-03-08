@@ -1,99 +1,135 @@
 import 'package:flutter/material.dart';
 import 'package:smart_tourism_application/core/entities/destination.dart';
+import 'package:smart_tourism_application/core/entities/hotel.dart';
+import 'package:smart_tourism_application/core/entities/restaurant.dart';
+import 'package:smart_tourism_application/core/entities/flight.dart';
+import 'package:smart_tourism_application/core/entities/activity.dart';
+import 'package:smart_tourism_application/core/repositories/i_hotels_repository.dart';
+import 'package:smart_tourism_application/core/repositories/i_restaurants_repository.dart';
+import 'package:smart_tourism_application/core/repositories/i_flights_repository.dart';
+import 'package:smart_tourism_application/core/repositories/i_activities_repository.dart';
 
 class DestinationsController with ChangeNotifier {
-  // Sample destinations data
-  final List<Destination> _destinations = [
-    Destination(
-      id: '1',
-      name: 'Riyadh',
-      description: 'The capital and largest city of Saudi Arabia, known for its modern architecture and rich history.',
-      imageUrl: 'assets/images/riyadh.jpg',
-      rating: 4.8,
-      location: 'Saudi Arabia',
-      price: 120.0,
-      features: ['Museums', 'Shopping', 'Cultural Sites'],
-    ),
-    Destination(
-      id: '2',
-      name: 'Jeddah',
-      description: 'A coastal city in western Saudi Arabia and the major port of the country.',
-      imageUrl: 'assets/images/jeddah.jpg',
-      rating: 4.6,
-      location: 'Saudi Arabia',
-      price: 100.0,
-      features: ['Beaches', 'Historic Sites', 'Cuisine'],
-    ),
-    Destination(
-      id: '3',
-      name: 'Medina',
-      description: 'The second holiest city in Islam, home to the Prophet\'s Mosque.',
-      imageUrl: 'assets/images/medina.jpg',
-      rating: 4.9,
-      location: 'Saudi Arabia',
-      price: 90.0,
-      features: ['Religious Sites', 'History', 'Culture'],
-    ),
-    Destination(
-      id: '4',
-      name: 'NEOM',
-      description: 'A planned cross-border city in the Tabuk Province of northwestern Saudi Arabia.',
-      imageUrl: 'assets/images/neom.jpg',
-      rating: 4.9,
-      location: 'Saudi Arabia',
-      price: 200.0,
-      features: ['Futuristic', 'Technology', 'Nature'],
-    ),
-    Destination(
-      id: '5',
-      name: 'AlUla',
-      description: 'An ancient city with thousands of years of history, known for its archaeological sites.',
-      imageUrl: 'assets/images/alula.jpg',
-      rating: 4.7,
-      location: 'Saudi Arabia',
-      price: 150.0,
-      features: ['Archaeology', 'History', 'Landscapes'],
-    ),
-    Destination(
-      id: '6',
-      name: 'Abha',
-      description: 'Mountain city known for its cool climate and natural beauty.',
-      imageUrl: 'assets/images/abha.jpg',
-      rating: 4.5,
-      location: 'Saudi Arabia',
-      price: 80.0,
-      features: ['Mountains', 'Cool Climate', 'Nature'],
-    ),
-  ];
+  final IHotelsRepository _hotelsRepository;
+  final IRestaurantsRepository _restaurantsRepository;
+  final IFlightsRepository _flightsRepository;
+  final IActivitiesRepository _activitiesRepository;
 
+  DestinationsController(
+    this._hotelsRepository,
+    this._restaurantsRepository,
+    this._flightsRepository,
+    this._activitiesRepository,
+  );
+
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<Destination> _destinations = [];
+
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   List<Destination> get destinations => _destinations;
 
-  // Get featured destinations
-  List<Destination> get featuredDestinations {
-    return _destinations.where((destination) => destination.rating >= 4.7).toList();
-  }
+  // أول 5 كـ "Featured"
+  List<Destination> get featuredDestinations =>
+      _destinations.take(5).toList();
 
-  // Get popular destinations
-  List<Destination> get popularDestinations {
-    return _destinations.take(3).toList();
-  }
+  // أول عناصر كـ "Popular"
+  List<Destination> get popularDestinations => _destinations.skip(5).take(8).toList();
 
-  // Search destinations by name
-  List<Destination> searchDestinations(String query) {
-    if (query.isEmpty) return _destinations;
-    
-    return _destinations.where((destination) {
-      return destination.name.toLowerCase().contains(query.toLowerCase()) ||
-          destination.description.toLowerCase().contains(query.toLowerCase());
-    }).toList();
-  }
+  Future<void> loadDestinations({String? name}) async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
 
-  // Get destination by ID
-  Destination? getDestinationById(String id) {
     try {
-      return _destinations.firstWhere((destination) => destination.id == id);
+      // نجلب مجموعة صغيرة من كل نوع (يمكنك تعديل العدد)
+      final hotels = await _hotelsRepository.getHotels(name: name);
+      final restaurants =
+          await _restaurantsRepository.getRestaurants(name: name);
+      final flights = await _flightsRepository.getFlights(name: name);
+      final activities =
+          await _activitiesRepository.getActivities(name: name);
+
+      final List<Destination> combined = [];
+
+      combined.addAll(
+        hotels.take(5).map(_mapHotelToDestination),
+      );
+      combined.addAll(
+        restaurants.take(5).map(_mapRestaurantToDestination),
+      );
+      combined.addAll(
+        flights.take(5).map(_mapFlightToDestination),
+      );
+      combined.addAll(
+        activities.take(5).map(_mapActivityToDestination),
+      );
+
+      _destinations = combined;
     } catch (e) {
-      return null;
+      _errorMessage = e.toString();
+      _destinations = [];
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
+  }
+
+  Future<void> searchDestinations(String query) async {
+    await loadDestinations(name: query.isEmpty ? null : query);
+  }
+
+  Destination _mapHotelToDestination(Hotel hotel) {
+    return Destination(
+      id: 'hotel-${hotel.id}',
+      name: hotel.name,
+      description: hotel.details,
+      imageUrl: hotel.featuredImage,
+      rating: 0, // يمكن ربطه بتقييم الفنادق لاحقًا
+      location: hotel.city.name,
+      price: hotel.priceRange.min.toDouble(),
+      features: ['Hotel', hotel.address],
+    );
+  }
+
+  Destination _mapRestaurantToDestination(Restaurant restaurant) {
+    final image = restaurant.images.isNotEmpty ? restaurant.images.first : '';
+    return Destination(
+      id: 'restaurant-${restaurant.id}',
+      name: restaurant.name,
+      description: restaurant.cuisineType,
+      imageUrl: image,
+      rating: 0,
+      location: restaurant.address,
+      price: 0,
+      features: ['Restaurant', restaurant.cuisineType],
+    );
+  }
+
+  Destination _mapFlightToDestination(Flight flight) {
+    return Destination(
+      id: 'flight-${flight.id}',
+      name: flight.name,
+      description: flight.details,
+      imageUrl: flight.logo,
+      rating: flight.averageRating ?? 0,
+      location: flight.address,
+      price: 0,
+      features: ['Airline', '${flight.plainTravelsCount} routes'],
+    );
+  }
+
+  Destination _mapActivityToDestination(Activity activity) {
+    return Destination(
+      id: 'activity-${activity.id}',
+      name: activity.name,
+      description: activity.details,
+      imageUrl: activity.thumbnail,
+      rating: 0,
+      location: activity.address,
+      price: activity.priceRange.min.toDouble(),
+      features: ['Activity', activity.date],
+    );
   }
 }

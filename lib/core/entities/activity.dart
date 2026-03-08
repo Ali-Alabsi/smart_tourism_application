@@ -32,18 +32,32 @@ class Activity {
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
       id: json['id'] as int,
-      name: json['name'] as String,
-      date: json['date'] as String,
-      address: json['address'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      city: City.fromJson(json['city'] as Map<String, dynamic>),
-      details: json['details'] as String,
-      url: json['url'] as String?,
-      priceRange: PriceRange.fromJson(json['price_range'] as Map<String, dynamic>),
-      isActive: json['is_active'] as bool,
-      images: (json['images'] as List<dynamic>).map((e) => e as String).toList(),
-      thumbnail: json['thumbnail'] as String,
-      createdAt: json['created_at'] as String,
+      name: json['name']?.toString() ?? '',
+      date: json['date']?.toString() ?? '',
+      address: json['address']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      city: json['city'] != null
+          ? City.fromJson(json['city'] as Map<String, dynamic>)
+          : City(
+              id: 0,
+              name: '',
+              country: '',
+              location: Location(latitude: '', longitude: ''),
+              createdAt: '',
+            ),
+      details: json['details']?.toString() ?? '',
+      url: json['url']?.toString(),
+      priceRange: json['price_range'] != null
+          ? PriceRange.fromJson(json['price_range'] as Map<String, dynamic>)
+          : PriceRange(min: 0, max: 0),
+      isActive: (json['is_active'] as bool?) ?? false,
+      images: (json['images'] as List<dynamic>? ?? const [])
+          .map((e) => e.toString())
+          .toList(),
+      thumbnail: json['thumbnail']?.toString() ?? '',
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -77,8 +91,8 @@ class Location {
 
   factory Location.fromJson(Map<String, dynamic> json) {
     return Location(
-      latitude: json['latitude'] as String,
-      longitude: json['longitude'] as String,
+      latitude: json['latitude']?.toString() ?? '',
+      longitude: json['longitude']?.toString() ?? '',
     );
   }
 
@@ -108,10 +122,12 @@ class City {
   factory City.fromJson(Map<String, dynamic> json) {
     return City(
       id: json['id'] as int,
-      name: json['name'] as String,
-      country: json['country'] as String,
-      location: Location.fromJson(json['location'] as Map<String, dynamic>),
-      createdAt: json['created_at'] as String,
+      name: json['name']?.toString() ?? '',
+      country: json['country']?.toString() ?? '',
+      location: json['location'] != null
+          ? Location.fromJson(json['location'] as Map<String, dynamic>)
+          : Location(latitude: '', longitude: ''),
+      createdAt: json['created_at']?.toString() ?? '',
     );
   }
 
@@ -137,8 +153,8 @@ class PriceRange {
 
   factory PriceRange.fromJson(Map<String, dynamic> json) {
     return PriceRange(
-      min: json['min'] as int,
-      max: json['max'] as int,
+      min: (json['min'] as int?) ?? 0,
+      max: (json['max'] as int?) ?? 0,
     );
   }
 

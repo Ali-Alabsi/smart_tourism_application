@@ -20,11 +20,9 @@ class _RegisterViewState extends State<RegisterView> {
   @override
   void initState() {
     super.initState();
-    // Set up the callback for successful registration
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final authController = Provider.of<AuthController>(context, listen: false);
       authController.onRegisterSuccess = () {
-        // Navigate to LoginView after successful registration
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => LoginView()),
